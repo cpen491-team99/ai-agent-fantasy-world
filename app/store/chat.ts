@@ -254,7 +254,7 @@ function fetchRooms(currentUserAgentId: string): ChatSession[] {
       template: createEmptyTemplate(),
     },
     {
-      id: "room_2",
+      id: "room_3",
       topic: "Sports Court",
       roomLogo: "26bd",
       memoryPrompt: "",
