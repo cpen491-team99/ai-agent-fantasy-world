@@ -32,6 +32,7 @@ export enum FileName {
 
 export enum StoreKey {
   Chat = "chat-next-web-store",
+  Rooms = "chat-rooms-store",
   Access = "access-control",
   Config = "app-config",
   Templates = "templates-store",

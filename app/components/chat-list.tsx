@@ -1,6 +1,3 @@
-import DeleteIcon from "../icons/delete.svg";
-import BotIcon from "../icons/bot.svg";
-
 import styles from "./home.module.scss";
 import {
   DragDropContext,
@@ -9,7 +6,7 @@ import {
   OnDragEndResponder,
 } from "@hello-pangea/dnd";
 
-import { useAppConfig, useChatStore } from "../store";
+import { useAppConfig, useChatRoomStore } from "../store";
 
 import Locale from "../locales";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -17,12 +14,9 @@ import { Path } from "../constant";
 import { TemplateAvatar } from "./template";
 import { Template } from "../store/template";
 import { useRef, useEffect } from "react";
-import { showConfirm } from "./ui-lib";
-import { useMobileScreen } from "../utils";
 
 export function ChatItem(props: {
   onClick?: () => void;
-  onDelete?: () => void;
   title: string;
   count: number;
   time: string;
@@ -31,6 +25,7 @@ export function ChatItem(props: {
   index: number;
   narrow?: boolean;
   template: Template;
+  roomLogo: string;
 }) {
   const config = useAppConfig();
   const draggableRef = useRef<HTMLDivElement | null>(null);
@@ -67,7 +62,7 @@ export function ChatItem(props: {
             <div className={styles["chat-item-narrow"]}>
               <div className={styles["chat-item-avatar"] + " no-dark"}>
                 <TemplateAvatar
-                  avatar={props.template.avatar}
+                  avatar={props.roomLogo}
                   model={config.modelConfig.model}
                 />
               </div>
@@ -77,7 +72,15 @@ export function ChatItem(props: {
             </div>
           ) : (
             <>
-              <div className={styles["chat-item-title"]}>{props.title}</div>
+              <div className={styles["chat-item-header"]}>
+                <div className={styles["chat-item-avatar"] + " no-dark"}>
+                  <TemplateAvatar
+                    avatar={props.roomLogo}
+                    model={config.modelConfig.model}
+                  />
+                </div>
+                <div className={styles["chat-item-title"]}>{props.title}</div>
+              </div>
               <div className={styles["chat-item-info"]}>
                 <div className={styles["chat-item-count"]}>
                   {Locale.ChatItem.ChatItemCount(props.count)}
@@ -86,17 +89,6 @@ export function ChatItem(props: {
               </div>
             </>
           )}
-
-          <div
-            className={styles["chat-item-delete"]}
-            onClickCapture={(e) => {
-              props.onDelete?.();
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          >
-            <DeleteIcon />
-          </div>
         </div>
       )}
     </Draggable>
@@ -104,17 +96,15 @@ export function ChatItem(props: {
 }
 
 export function ChatList(props: { narrow?: boolean }) {
-  const [sessions, selectedIndex, selectSession, moveSession] = useChatStore(
+  const [rooms, selectedIndex, selectRoom, moveRoom] = useChatRoomStore(
     (state) => [
-      state.sessions,
-      state.currentSessionIndex,
-      state.selectSession,
-      state.moveSession,
+      state.rooms,
+      state.currentRoomIndex,
+      state.selectRoom,
+      state.moveRoom,
     ],
   );
-  const chatStore = useChatStore();
   const navigate = useNavigate();
-  const isMobileScreen = useMobileScreen();
 
   const onDragEnd: OnDragEndResponder = (result) => {
     const { destination, source } = result;
@@ -129,7 +119,7 @@ export function ChatList(props: { narrow?: boolean }) {
       return;
     }
 
-    moveSession(source.index, destination.index);
+    moveRoom(source.index, destination.index);
   };
 
   return (
@@ -141,7 +131,7 @@ export function ChatList(props: { narrow?: boolean }) {
             ref={provided.innerRef}
             {...provided.droppableProps}
           >
-            {sessions.map((item, i) => (
+            {rooms.map((item, i) => (
               <ChatItem
                 title={item.topic}
                 time={new Date(item.lastUpdate).toLocaleString()}
@@ -152,18 +142,11 @@ export function ChatList(props: { narrow?: boolean }) {
                 selected={i === selectedIndex}
                 onClick={() => {
                   navigate(Path.Chat);
-                  selectSession(i);
-                }}
-                onDelete={async () => {
-                  if (
-                    (!props.narrow && !isMobileScreen) ||
-                    (await showConfirm(Locale.Home.DeleteChat))
-                  ) {
-                    chatStore.deleteSession(i);
-                  }
+                  selectRoom(i);
                 }}
                 narrow={props.narrow}
                 template={item.template}
+                roomLogo={item.roomLogo}
               />
             ))}
             {provided.placeholder}

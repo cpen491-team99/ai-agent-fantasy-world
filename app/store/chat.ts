@@ -5,6 +5,7 @@ import Locale, { getLang } from "../locales";
 import { showToast } from "../components/ui-lib";
 import { ModelConfig, Model, useAppConfig, ConfigType } from "./config";
 import { createEmptyTemplate, Template } from "./template";
+import { DEFAULT_TEMPLATE_AVATAR } from "./template";
 import {
   DEFAULT_INPUT_TEMPLATE,
   DEFAULT_MODELS,
@@ -26,6 +27,8 @@ export type ChatMessage = RequestMessage & {
   stopReason?: ChatCompletionFinishReason;
   model?: Model;
   usage?: CompletionUsage;
+  agentId?: string;
+  isUserAgent?: boolean;
 };
 
 export function createMessage(override: Partial<ChatMessage>): ChatMessage {
@@ -49,6 +52,7 @@ export interface ChatSession {
   id: string;
   topic: string;
 
+  roomLogo: string;
   memoryPrompt: string;
   messages: ChatMessage[];
   stat: ChatStat;
@@ -66,10 +70,28 @@ export const BOT_HELLO: ChatMessage = createMessage({
   content: Locale.Store.BotHello,
 });
 
+function createAgentMessage(
+  content: string,
+  agentName: string,
+  agentId: string,
+  isUserAgent: boolean = false,
+  override?: Partial<ChatMessage>,
+): ChatMessage {
+  return createMessage({
+    role: "assistant",
+    content,
+    model: agentName,
+    agentId,
+    isUserAgent,
+    ...override,
+  });
+}
+
 function createEmptySession(): ChatSession {
   return {
     id: nanoid(),
     topic: DEFAULT_TOPIC,
+    roomLogo: DEFAULT_TEMPLATE_AVATAR,
     memoryPrompt: "",
     messages: [],
     stat: {
@@ -83,6 +105,203 @@ function createEmptySession(): ChatSession {
 
     template: createEmptyTemplate(),
   };
+}
+
+function fetchRooms(currentUserAgentId: string): ChatSession[] {
+  return [
+    {
+      id: "room_1",
+      topic: "Library",
+      roomLogo: "1f680",
+      memoryPrompt: "",
+      messages: [
+        createAgentMessage(
+          "Status report: perimeter scanners are up and sampling anomalies.",
+          "Raccoon",
+          "raccoon",
+          currentUserAgentId === "raccoon",
+        ),
+        createAgentMessage(
+          "I'm tagging the anomalies with priority scores for quick review.",
+          "Raccoon",
+          "raccoon",
+          currentUserAgentId === "raccoon",
+        ),
+        createAgentMessage(
+          "Copy that. Routing the anomaly logs to the map overlay now.",
+          "Cat",
+          "cat",
+          currentUserAgentId === "cat",
+        ),
+        createAgentMessage(
+          "Let's prioritize anything within the western ridge sector.",
+          "Dog",
+          "dog",
+          currentUserAgentId === "dog",
+        ),
+        createAgentMessage(
+          "I'll prepare a short brief once the scans stabilize.",
+          "Dog",
+          "dog",
+          currentUserAgentId === "dog",
+        ),
+      ],
+      stat: {
+        tokenCount: 0,
+        wordCount: 0,
+        charCount: 0,
+      },
+      lastUpdate: Date.now(),
+      lastSummarizeIndex: 0,
+      clearContextIndex: undefined,
+      isGenerating: false,
+      template: createEmptyTemplate(),
+    },
+    {
+      id: "room_2",
+      topic: "Cafe",
+      roomLogo: "1f4a1",
+      memoryPrompt: "",
+      messages: [
+        createAgentMessage(
+          "Status report: perimeter scanners are up and sampling anomalies.",
+          "Raccoon",
+          "raccoon",
+          currentUserAgentId === "raccoon",
+        ),
+        createAgentMessage(
+          "I'm tagging the anomalies with priority scores for quick review.",
+          "Raccoon",
+          "raccoon",
+          currentUserAgentId === "raccoon",
+        ),
+        createAgentMessage(
+          "Copy that. Routing the anomaly logs to the map overlay now.",
+          "Cat",
+          "cat",
+          currentUserAgentId === "cat",
+        ),
+        createAgentMessage(
+          "Let's prioritize anything within the western ridge sector.",
+          "Dog",
+          "dog",
+          currentUserAgentId === "dog",
+        ),
+        createAgentMessage(
+          "I'll prepare a short brief once the scans stabilize.",
+          "Dog",
+          "dog",
+          currentUserAgentId === "dog",
+        ),
+      ],
+      stat: {
+        tokenCount: 0,
+        wordCount: 0,
+        charCount: 0,
+      },
+      lastUpdate: Date.now(),
+      lastSummarizeIndex: 0,
+      clearContextIndex: undefined,
+      isGenerating: false,
+      template: createEmptyTemplate(),
+    },
+    {
+      id: "room_2",
+      topic: "Park",
+      roomLogo: "1f3de-fe0f",
+      memoryPrompt: "",
+      messages: [
+        createAgentMessage(
+          "Status report: perimeter scanners are up and sampling anomalies.",
+          "Raccoon",
+          "raccoon",
+          currentUserAgentId === "raccoon",
+        ),
+        createAgentMessage(
+          "I'm tagging the anomalies with priority scores for quick review.",
+          "Raccoon",
+          "raccoon",
+          currentUserAgentId === "raccoon",
+        ),
+        createAgentMessage(
+          "Copy that. Routing the anomaly logs to the map overlay now.",
+          "Cat",
+          "cat",
+          currentUserAgentId === "cat",
+        ),
+        createAgentMessage(
+          "Let's prioritize anything within the western ridge sector.",
+          "Dog",
+          "dog",
+          currentUserAgentId === "dog",
+        ),
+        createAgentMessage(
+          "I'll prepare a short brief once the scans stabilize.",
+          "Dog",
+          "dog",
+          currentUserAgentId === "dog",
+        ),
+      ],
+      stat: {
+        tokenCount: 0,
+        wordCount: 0,
+        charCount: 0,
+      },
+      lastUpdate: Date.now(),
+      lastSummarizeIndex: 0,
+      clearContextIndex: undefined,
+      isGenerating: false,
+      template: createEmptyTemplate(),
+    },
+    {
+      id: "room_3",
+      topic: "Sports Court",
+      roomLogo: "26bd",
+      memoryPrompt: "",
+      messages: [
+        createAgentMessage(
+          "Status report: perimeter scanners are up and sampling anomalies.",
+          "Raccoon",
+          "raccoon",
+          currentUserAgentId === "raccoon",
+        ),
+        createAgentMessage(
+          "I'm tagging the anomalies with priority scores for quick review.",
+          "Raccoon",
+          "raccoon",
+          currentUserAgentId === "raccoon",
+        ),
+        createAgentMessage(
+          "Copy that. Routing the anomaly logs to the map overlay now.",
+          "Cat",
+          "cat",
+          currentUserAgentId === "cat",
+        ),
+        createAgentMessage(
+          "Let's prioritize anything within the western ridge sector.",
+          "Dog",
+          "dog",
+          currentUserAgentId === "dog",
+        ),
+        createAgentMessage(
+          "I'll prepare a short brief once the scans stabilize.",
+          "Dog",
+          "dog",
+          currentUserAgentId === "dog",
+        ),
+      ],
+      stat: {
+        tokenCount: 0,
+        wordCount: 0,
+        charCount: 0,
+      },
+      lastUpdate: Date.now(),
+      lastSummarizeIndex: 0,
+      clearContextIndex: undefined,
+      isGenerating: false,
+      template: createEmptyTemplate(),
+    },
+  ];
 }
 
 function countMessages(msgs: ChatMessage[]) {
@@ -131,6 +350,169 @@ const DEFAULT_CHAT_STATE = {
   sessions: [createEmptySession()],
   currentSessionIndex: 0,
 };
+
+const ChatRoomState = {
+  currentUserAgentId: "dog",
+  rooms: fetchRooms("dog"),
+  currentRoomIndex: 0,
+};
+
+export const useChatRoomStore = createPersistStore(
+  ChatRoomState,
+  (set, _get) => {
+    function get() {
+      return {
+        ..._get(),
+        ...methods,
+      };
+    }
+
+    const methods = {
+      selectRoom(index: number) {
+        const rooms = get().rooms;
+        if (rooms.length === 0) {
+          set({ currentRoomIndex: 0 });
+          return;
+        }
+        const nextIndex = Math.min(rooms.length - 1, Math.max(0, index));
+        set({ currentRoomIndex: nextIndex });
+      },
+
+      moveRoom(from: number, to: number) {
+        set((state) => {
+          const { rooms, currentRoomIndex: oldIndex } = state;
+          const newRooms = [...rooms];
+          const room = newRooms[from];
+          newRooms.splice(from, 1);
+          newRooms.splice(to, 0, room);
+
+          let newIndex = oldIndex === from ? to : oldIndex;
+          if (oldIndex > from && oldIndex <= to) {
+            newIndex -= 1;
+          } else if (oldIndex < from && oldIndex >= to) {
+            newIndex += 1;
+          }
+
+          return {
+            currentRoomIndex: newIndex,
+            rooms: newRooms,
+          };
+        });
+      },
+
+      deleteRoom(index: number) {
+        const deletingLastRoom = get().rooms.length === 1;
+        const deletedRoom = get().rooms.at(index);
+
+        if (!deletedRoom) return;
+
+        const rooms = get().rooms.slice();
+        rooms.splice(index, 1);
+
+        const currentIndex = get().currentRoomIndex;
+        let nextIndex = Math.min(
+          currentIndex - Number(index < currentIndex),
+          rooms.length - 1,
+        );
+
+        if (deletingLastRoom) {
+          nextIndex = 0;
+          rooms.push(createEmptySession());
+        }
+
+        const restoreState = {
+          currentRoomIndex: get().currentRoomIndex,
+          rooms: get().rooms.slice(),
+        };
+
+        set(() => ({
+          currentRoomIndex: nextIndex,
+          rooms,
+        }));
+
+        showToast(
+          Locale.Home.DeleteToast,
+          {
+            text: Locale.Home.Revert,
+            onClick() {
+              set(() => restoreState);
+            },
+          },
+          5000,
+        );
+      },
+
+      currentRoom() {
+        let index = get().currentRoomIndex;
+        const rooms = get().rooms;
+
+        if (index < 0 || index >= rooms.length) {
+          index = Math.min(rooms.length - 1, Math.max(0, index));
+          set(() => ({ currentRoomIndex: index }));
+        }
+
+        return rooms[index];
+      },
+
+      updateCurrentRoom(updater: (room: ChatSession) => void) {
+        const room = get().currentRoom();
+        const rooms = get().rooms.slice();
+        const index = get().currentRoomIndex;
+        if (!room || index < 0) return;
+        updater(room);
+        rooms[index] = room;
+        set(() => ({ rooms }));
+      },
+    };
+
+    return methods;
+  },
+  {
+    name: StoreKey.Rooms,
+    version: 0.4,
+    migrate(persistedState, version): any {
+      const store = persistedState as typeof ChatRoomState | undefined;
+      if (!store) {
+        return ChatRoomState;
+      }
+      if (version < 0.1) {
+        store.rooms.forEach((s) => {
+          s.messages.forEach((m) => {
+            m.stopReason = "stop";
+          });
+        });
+      }
+      if (version < 0.2) {
+        return {
+          ...ChatRoomState,
+          ...store,
+          currentUserAgentId:
+            store.currentUserAgentId ?? ChatRoomState.currentUserAgentId,
+          rooms: store.rooms?.length ? store.rooms : ChatRoomState.rooms,
+        };
+      }
+      if (version < 0.3) {
+        const currentUserAgentId =
+          store.currentUserAgentId ?? ChatRoomState.currentUserAgentId;
+        return {
+          ...store,
+          currentUserAgentId,
+          rooms: fetchRooms(currentUserAgentId),
+        };
+      }
+      if (version < 0.4) {
+        const currentUserAgentId =
+          store.currentUserAgentId ?? ChatRoomState.currentUserAgentId;
+        return {
+          ...store,
+          currentUserAgentId,
+          rooms: fetchRooms(currentUserAgentId),
+        };
+      }
+      return store;
+    },
+  },
+);
 
 export const useChatStore = createPersistStore(
   DEFAULT_CHAT_STATE,

@@ -212,6 +212,21 @@
   animation: slide-in ease 0.3s;
 }
 
+.chat-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-item-avatar {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+}
+
 .chat-item-delete {
   position: absolute;
   top: 0;
@@ -221,12 +236,12 @@
   cursor: pointer;
 }
 
-.chat-item:hover>.chat-item-delete {
+.chat-item:hover > .chat-item-delete {
   opacity: 0.5;
   transform: translateX(-4px);
 }
 
-.chat-item:hover>.chat-item-delete:hover {
+.chat-item:hover > .chat-item-delete:hover {
   opacity: 1;
 }
 
@@ -366,7 +381,6 @@
     }
   }
 }
-
 
 .error-screen {
   display: flex;
