@@ -6,9 +6,6 @@ import { IconButton } from "./button";
 import SettingsIcon from "../icons/gear.svg";
 import GithubIcon from "../icons/github.svg";
 import InternetIcon from "../icons/internet.svg";
-import MlcIcon from "../icons/mlc.svg";
-import AddIcon from "../icons/add.svg";
-import DeleteIcon from "../icons/delete.svg";
 import TemplateIcon from "../icons/chat.svg";
 import DragIcon from "../icons/drag.svg";
 import LightIcon from "../icons/light.svg";
@@ -17,7 +14,7 @@ import AutoIcon from "../icons/auto.svg";
 
 import Locale from "../locales";
 
-import { Theme, useAppConfig, useChatStore } from "../store";
+import { Theme, useAppConfig, useChatRoomStore } from "../store";
 
 import {
   DEFAULT_SIDEBAR_WIDTH,
@@ -29,25 +26,25 @@ import {
   WEBLLM_HOME_URL,
 } from "../constant";
 
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
-import { showConfirm, showToast } from "./ui-lib";
+import { showToast } from "./ui-lib";
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
 });
 
 function useHotKey() {
-  const chatStore = useChatStore();
+  const chatRoomStore = useChatRoomStore();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey) {
         if (e.key === "ArrowUp") {
-          chatStore.nextSession(-1);
+          chatRoomStore.selectRoom(chatRoomStore.currentRoomIndex - 1);
         } else if (e.key === "ArrowDown") {
-          chatStore.nextSession(1);
+          chatRoomStore.selectRoom(chatRoomStore.currentRoomIndex + 1);
         }
       }
     };
@@ -132,7 +129,7 @@ function useDragSideBar() {
 }
 
 export function SideBar(props: { className?: string }) {
-  const chatStore = useChatStore();
+  const chatRoomStore = useChatRoomStore();
 
   // drag side bar
   const { onDragStart, shouldNarrow } = useDragSideBar();
@@ -208,16 +205,6 @@ export function SideBar(props: { className?: string }) {
 
       <div className={styles["sidebar-tail"]}>
         <div className={styles["sidebar-actions"]}>
-          <div className={styles["sidebar-action"] + " " + styles.mobile}>
-            <IconButton
-              icon={<DeleteIcon />}
-              onClick={async () => {
-                if (await showConfirm(Locale.Home.DeleteChat)) {
-                  chatStore.deleteSession(chatStore.currentSessionIndex);
-                }
-              }}
-            />
-          </div>
           <div className={styles["sidebar-action"]}>
             <a href={WEBLLM_HOME_URL} target="_blank" rel="noopener noreferrer">
               <IconButton icon={<InternetIcon />} shadow />
@@ -246,17 +233,17 @@ export function SideBar(props: { className?: string }) {
             />
           </div>
         </div>
-        <div>
+        {/* <div>
           <IconButton
             icon={<AddIcon />}
             text={shouldNarrow ? undefined : Locale.Home.NewChat}
             onClick={() => {
-              chatStore.newSession();
+              chatRoomStore.selectRoom(0);
               navigate(Path.Chat);
             }}
             shadow
           />
-        </div>
+        </div> */}
       </div>
 
       <div
