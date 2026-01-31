@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 
 import styles from "./home.module.scss";
 
@@ -14,7 +14,9 @@ import AutoIcon from "../icons/auto.svg";
 
 import Locale from "../locales";
 
-import { Theme, useAppConfig, useChatRoomStore } from "../store";
+import { Theme, useAppConfig } from "../store";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { setCurrentRoomId } from "../redux/chatroomsSlice";
 
 import {
   DEFAULT_SIDEBAR_WIDTH,
@@ -36,22 +38,35 @@ const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
 });
 
 function useHotKey() {
-  const chatRoomStore = useChatRoomStore();
+  const dispatch = useAppDispatch();
+  const rooms = useAppSelector((state) => state.chatrooms.rooms);
+  const currentRoomId = useAppSelector(
+    (state) => state.chatrooms.currentRoomId,
+  );
+  const currentIndex = rooms.findIndex((room) => room.id === currentRoomId);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey) {
         if (e.key === "ArrowUp") {
-          chatRoomStore.selectRoom(chatRoomStore.currentRoomIndex - 1);
+          const nextIndex = Math.max(0, currentIndex - 1);
+          const nextRoom = rooms[nextIndex];
+          if (nextRoom) {
+            dispatch(setCurrentRoomId(nextRoom.id));
+          }
         } else if (e.key === "ArrowDown") {
-          chatRoomStore.selectRoom(chatRoomStore.currentRoomIndex + 1);
+          const nextIndex = Math.min(rooms.length - 1, currentIndex + 1);
+          const nextRoom = rooms[nextIndex];
+          if (nextRoom) {
+            dispatch(setCurrentRoomId(nextRoom.id));
+          }
         }
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  });
+  }, [currentIndex, dispatch, rooms]);
 }
 
 function useDragSideBar() {
@@ -129,7 +144,10 @@ function useDragSideBar() {
 }
 
 export function SideBar(props: { className?: string }) {
-  const chatRoomStore = useChatRoomStore();
+  const dispatch = useAppDispatch();
+  const rooms = useAppSelector((state) => state.chatrooms.rooms);
+  const chatroomsState = useAppSelector((state) => state.chatrooms);
+  const [showReduxState, setShowReduxState] = useState(false);
 
   // drag side bar
   const { onDragStart, shouldNarrow } = useDragSideBar();
@@ -203,6 +221,25 @@ export function SideBar(props: { className?: string }) {
         <ChatList narrow={shouldNarrow} />
       </div>
 
+      {/* For redux testing */}
+      {!shouldNarrow && (
+        <div className={styles["redux-panel"]}>
+          <button
+            className={styles["redux-panel-header"]}
+            type="button"
+            onClick={() => setShowReduxState((prev) => !prev)}
+          >
+            {showReduxState ? "Hide" : "Show"} Redux State
+          </button>
+          {showReduxState && (
+            <pre className={styles["redux-panel-body"]}>
+              {JSON.stringify(chatroomsState, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
+      {/*End  For redux testing */}
+
       <div className={styles["sidebar-tail"]}>
         <div className={styles["sidebar-actions"]}>
           <div className={styles["sidebar-action"]}>
@@ -238,7 +275,9 @@ export function SideBar(props: { className?: string }) {
             icon={<AddIcon />}
             text={shouldNarrow ? undefined : Locale.Home.NewChat}
             onClick={() => {
-              chatRoomStore.selectRoom(0);
+              if (rooms[0]) {
+                dispatch(setCurrentRoomId(rooms[0].id));
+              }
               navigate(Path.Chat);
             }}
             shadow
