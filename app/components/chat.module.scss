@@ -339,11 +339,11 @@
   }
 }
 
-.chat-body-main-title {
-  cursor: pointer;
+.chat-body-main-title { // Change if we want to remove the edit conversation entirely.
+  cursor: default;
 
   &:hover {
-    text-decoration: underline;
+    text-decoration: none;
   }
 }
 
