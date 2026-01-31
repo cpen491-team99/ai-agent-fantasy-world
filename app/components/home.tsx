@@ -29,6 +29,7 @@ import { WebLLMApi } from "../client/webllm";
 import { ModelClient, useChatStore } from "../store";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { MlcLLMApi } from "../client/mlcllm";
+import { Provider } from "react-redux";
 
 export function Loading(props: { noLogo?: boolean }) {
   return (

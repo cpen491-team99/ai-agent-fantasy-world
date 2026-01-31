@@ -6,13 +6,14 @@ import {
   OnDragEndResponder,
 } from "@hello-pangea/dnd";
 
-import { useAppConfig, useChatRoomStore } from "../store";
+import { useAppConfig } from "../store";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { moveRoom, setCurrentRoomId } from "../redux/chatroomsSlice";
 
 import Locale from "../locales";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Path } from "../constant";
 import { TemplateAvatar } from "./template";
-import { Template } from "../store/template";
 import { useRef, useEffect } from "react";
 
 export function ChatItem(props: {
@@ -24,7 +25,6 @@ export function ChatItem(props: {
   id: string;
   index: number;
   narrow?: boolean;
-  template: Template;
   roomLogo: string;
 }) {
   const config = useAppConfig();
@@ -96,14 +96,12 @@ export function ChatItem(props: {
 }
 
 export function ChatList(props: { narrow?: boolean }) {
-  const [rooms, selectedIndex, selectRoom, moveRoom] = useChatRoomStore(
-    (state) => [
-      state.rooms,
-      state.currentRoomIndex,
-      state.selectRoom,
-      state.moveRoom,
-    ],
+  const dispatch = useAppDispatch();
+  const rooms = useAppSelector((state) => state.chatrooms.rooms);
+  const currentRoomId = useAppSelector(
+    (state) => state.chatrooms.currentRoomId,
   );
+  const selectedIndex = rooms.findIndex((room) => room.id === currentRoomId);
   const navigate = useNavigate();
 
   const onDragEnd: OnDragEndResponder = (result) => {
@@ -119,7 +117,7 @@ export function ChatList(props: { narrow?: boolean }) {
       return;
     }
 
-    moveRoom(source.index, destination.index);
+    dispatch(moveRoom({ from: source.index, to: destination.index }));
   };
 
   return (
@@ -142,10 +140,9 @@ export function ChatList(props: { narrow?: boolean }) {
                 selected={i === selectedIndex}
                 onClick={() => {
                   navigate(Path.Chat);
-                  selectRoom(i);
+                  dispatch(setCurrentRoomId(item.id));
                 }}
                 narrow={props.narrow}
-                template={item.template}
                 roomLogo={item.roomLogo}
               />
             ))}

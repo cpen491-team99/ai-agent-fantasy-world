@@ -37,7 +37,6 @@ import {
   ChatMessage,
   SubmitKey,
   useChatStore,
-  useChatRoomStore,
   BOT_HELLO,
   createMessage,
   useAppConfig,
@@ -93,6 +92,7 @@ import Image from "next/image";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { ChatImage } from "../typing";
 import ModelSelect from "./model-select";
+import { useAppSelector } from "../redux/hooks";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -1475,14 +1475,21 @@ function _Chat() {
 }
 
 export function ChatRoom() {
-  const chatRoomStore = useChatRoomStore();
-  const roomIndex = chatRoomStore.currentRoomIndex;
-  return <RoomChat key={roomIndex} />;
+  const currentRoomId = useAppSelector(
+    (state) => state.chatrooms.currentRoomId,
+  );
+  return <RoomChat key={currentRoomId ?? "room"} />;
 }
 
 function RoomChat() {
-  const chatRoomStore = useChatRoomStore();
-  const room = chatRoomStore.currentRoom();
+  const rooms = useAppSelector((state) => state.chatrooms.rooms);
+  const currentRoomId = useAppSelector(
+    (state) => state.chatrooms.currentRoomId,
+  );
+  const currentUserAgentId = useAppSelector(
+    (state) => state.chatrooms.currentUserAgentId,
+  );
+  const room = rooms.find((room) => room.id === currentRoomId);
   const config = useAppConfig();
   const fontSize = config.fontSize;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1492,7 +1499,7 @@ function RoomChat() {
   const [hitBottom, setHitBottom] = useState(true);
   const [showExport, setShowExport] = useState(false);
 
-  const messages = room?.messages ?? [];
+  const messages: ChatMessage[] = room?.messages ?? [];
   const models = config.models;
 
   useEffect(() => {
@@ -1596,8 +1603,7 @@ function RoomChat() {
           const isUser = message.role === "user";
           const isUserAgentMessage =
             message.isUserAgent ||
-            (!!message.agentId &&
-              message.agentId === chatRoomStore.currentUserAgentId);
+            (!!message.agentId && message.agentId === currentUserAgentId);
           const isUserAligned = isUser || isUserAgentMessage;
           const showTyping = message.streaming;
           const shouldShowAvatar = !isUserAligned || isUserAgentMessage;
@@ -1624,7 +1630,7 @@ function RoomChat() {
                             <Avatar avatar="2699-fe0f" />
                           ) : (
                             <TemplateAvatar
-                              avatar={room.template.avatar}
+                              avatar={room.roomLogo}
                               model={message.model || config.modelConfig.model}
                             />
                           )}
