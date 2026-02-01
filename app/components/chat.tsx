@@ -32,6 +32,7 @@ import BrainIcon from "../icons/brain.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
+import { getMqttClient } from "../client/mqtt";
 
 import {
   ChatMessage,
@@ -105,6 +106,22 @@ export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
       </div>
     </div>
   );
+}
+
+function formatMessageTime(dateLike: string | number | Date | undefined) {
+  if (!dateLike) return "";
+
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return "";
+
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 export function SessionConfigModel(props: { onClose: () => void }) {
@@ -589,6 +606,113 @@ function _Chat() {
   const webllm = useContext(WebLLMContext)!;
   const mlcllm = useContext(MLCLLMContext)!;
 
+  // --- My Agent (private chat via MQTT) ---
+  const PRIVATE_ROOM_ID = "private-room";
+  const MY_AGENT_ID = "user"; // must match your frontend agentId (same as Providers bootstrap)
+  const recentlySentRef = useRef<Array<{ content: string; ts: number }>>([]);
+
+  function toChatMessage(m: any): ChatMessage {
+    const text = String(m.text ?? "");
+    const dateObj = m.sentAt ? new Date(m.sentAt) : new Date();
+    const isFrontendUser = !!m.senderIsUser;
+    const senderId = String(m.senderId ?? "");
+
+    return createMessage({
+      id: m.id ? String(m.id) : undefined,
+      role: isFrontendUser ? "user" : "assistant",
+      content: text,
+      date: dateObj.toISOString(),
+      agentId: isFrontendUser ? undefined : senderId,
+      model: isFrontendUser ? undefined : senderId,
+      isUserAgent: isFrontendUser,
+    });
+  }
+
+  const chatStoreRef = useRef(chatStore);
+
+  useEffect(() => {
+    chatStoreRef.current = chatStore;
+  }, [chatStore]);
+
+  useEffect(() => {
+    const client = getMqttClient();
+
+    const unsubscribe = client.addHandlers({
+      onRoomHistory: (data) => {
+        if (data.roomId !== PRIVATE_ROOM_ID) return;
+        if (data.error) return;
+
+        const msgs = (data.messages ?? [])
+          .slice()
+          .sort((a, b) => {
+            const ta = new Date(a.sentAt ?? a.ts ?? a.date ?? 0).getTime();
+            const tb = new Date(b.sentAt ?? b.ts ?? b.date ?? 0).getTime();
+            return ta - tb; // oldest -> newest
+          })
+          .map(toChatMessage);
+        chatStoreRef.current.updateCurrentSession((s) => {
+          s.messages = msgs;
+        });
+      },
+
+      onChatOut: (msg) => {
+        if (msg.roomId !== PRIVATE_ROOM_ID) return;
+
+        const senderIsMe = msg.fromAgentId === MY_AGENT_ID;
+
+        if (senderIsMe) {
+          const now = Date.now();
+          recentlySentRef.current = recentlySentRef.current.filter(
+            (x) => now - x.ts < 10_000,
+          );
+          const idx = recentlySentRef.current.findIndex(
+            (x) => x.content === msg.msg,
+          );
+          if (idx >= 0) {
+            recentlySentRef.current.splice(idx, 1);
+            return;
+          }
+        }
+
+        chatStoreRef.current.updateCurrentSession((s) => {
+          s.messages.push(
+            createMessage({
+              role: senderIsMe ? "user" : "assistant",
+              content: msg.msg,
+              date: new Date(msg.ts ?? Date.now()).toISOString(),
+              agentId: senderIsMe ? undefined : msg.fromAgentId,
+              model: senderIsMe ? undefined : msg.fromAgentId,
+              isUserAgent: senderIsMe,
+            }),
+          );
+        });
+      },
+    });
+
+    return () => {
+      unsubscribe(); // ✅ prevents “16 copies” forever
+    };
+  }, []);
+
+  useEffect(() => {
+    const client = getMqttClient();
+
+    try {
+      client.joinRoom(PRIVATE_ROOM_ID);
+      client.requestRoomHistory(PRIVATE_ROOM_ID);
+    } catch (e) {
+      console.error("[MQTT] failed to join private-room", e);
+    }
+
+    return () => {
+      // best-effort leave
+      try {
+        client.leaveRoom();
+      } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const llm =
     config.modelClientType === ModelClient.MLCLLM_API ? mlcllm : webllm;
 
@@ -672,8 +796,37 @@ function _Chat() {
 
     if (isStreaming) return;
 
-    chatStore.onUserInput(userInput, llm, attachImages);
-    setAttachImages([]);
+    // My Agent uses MQTT (no WebLLM streaming here)
+    if (attachImages.length > 0) {
+      showToast("Images are not supported in My Agent yet.");
+      setAttachImages([]);
+    }
+
+    const now = Date.now();
+    const msgText = userInput;
+
+    // Optimistically render the user's message
+    recentlySentRef.current.push({ content: msgText, ts: now });
+    chatStore.updateCurrentSession((s) => {
+      s.messages.push(
+        createMessage({
+          role: "user",
+          content: msgText,
+          date: new Date(now).toISOString(),
+          isUserAgent: true,
+        }),
+      );
+    });
+
+    try {
+      getMqttClient().sendRoomMessage(PRIVATE_ROOM_ID, msgText);
+    } catch (e) {
+      console.error("[MQTT] failed to send", e);
+      showToast("Failed to send message.");
+    }
+
+    // chatStore.onUserInput(userInput, llm, attachImages);
+    // setAttachImages([]);
     localStorage.setItem(LAST_INPUT_KEY, userInput);
     setUserInput("");
     setPromptHints([]);
@@ -1273,7 +1426,7 @@ function _Chat() {
                     <div>
                       {isContext
                         ? Locale.Chat.IsContext
-                        : message.date.toLocaleString()}
+                        : formatMessageTime(message.date)}
                     </div>
                   </div>
                 </div>
@@ -1391,4 +1544,5 @@ export function Chat() {
   const chatStore = useChatStore();
   const sessionIndex = chatStore.currentSessionIndex;
   return <_Chat key={sessionIndex}></_Chat>;
+  // return <PrivateChat />;
 }
