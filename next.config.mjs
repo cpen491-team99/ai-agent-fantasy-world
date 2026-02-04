@@ -9,8 +9,8 @@ console.log("[Next] build with chunk: ", !disableChunk);
 const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
-    worker-src 'self';
-    connect-src 'self' blob: data: https: http:;
+    worker-src 'self' blob:;
+    connect-src 'self' blob: data: https: http: ws: wss:;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
@@ -31,6 +31,9 @@ const nextConfig = {
 
     config.resolve.fallback = {
       child_process: false,
+      ...(config.resolve.fallback || {}),
+      bufferutil: false,
+      "utf-8-validate": false,
     };
 
     if (!isServer) {

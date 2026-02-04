@@ -34,11 +34,9 @@ import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
 
 import {
-  ChatMessage,
   SubmitKey,
   useChatStore,
   BOT_HELLO,
-  createMessage,
   useAppConfig,
   DEFAULT_TOPIC,
   Model,
@@ -93,6 +91,10 @@ import { MLCLLMContext, WebLLMContext } from "../context";
 import { ChatImage } from "../typing";
 import ModelSelect from "./model-select";
 import { useAppSelector } from "../redux/hooks";
+import { useAppDispatch } from "../redux/hooks";
+import { addMessage, setRoomMessages } from "../redux/chatroomsSlice";
+import { getMqttClient } from "../client/mqtt";
+import { createMessage, type ChatMessage } from "../store/chat";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -1483,6 +1485,20 @@ export function ChatRoom() {
 
 function RoomChat() {
   const rooms = useAppSelector((state) => state.chatrooms.rooms);
+
+  const dispatch = useAppDispatch();
+  const [draft, setDraft] = useState("");
+
+  const sendToRoom = () => {
+    const text = draft.trim();
+    if (!text || !room) return;
+
+    // publish to backend via MQTT (backend will re-broadcast on rooms/<roomId>/chat/out)
+    getMqttClient().sendRoomMessage(room.id, text);
+
+    setDraft("");
+  };
+
   const currentRoomId = useAppSelector(
     (state) => state.chatrooms.currentRoomId,
   );
@@ -1501,6 +1517,63 @@ function RoomChat() {
 
   const messages: ChatMessage[] = room?.messages ?? [];
   const models = config.models;
+
+  function toChatMessage(m: any): ChatMessage {
+    const text = String(m.text ?? "");
+    const dateObj = m.sentAt ? new Date(m.sentAt) : new Date();
+
+    // In your history, senderIsUser seems to mean "frontend user"
+    // But senderId can be "user" and senderIsUser=false (treated like an agent).
+    const isFrontendUser = !!m.senderIsUser;
+
+    const senderId = String(m.senderId ?? "");
+
+    return createMessage({
+      id: m.id ? String(m.id) : undefined,
+      role: isFrontendUser ? "user" : "assistant",
+      content: text, // createMessage will normalize
+      date: dateObj.toISOString(),
+      agentId: isFrontendUser ? undefined : senderId,
+      model: isFrontendUser ? undefined : senderId,
+      isUserAgent: isFrontendUser, // aligns user messages on right
+    });
+  }
+
+  useEffect(() => {
+    getMqttClient().setHandlers({
+      onRoomHistory: (data) => {
+        if (data.error) {
+          console.warn("[MQTT] room history error:", data.error);
+          return;
+        }
+        const msgs = (data.messages ?? [])
+          .slice()
+          .sort((a, b) => {
+            const ta = new Date(a.sentAt ?? a.ts ?? a.date ?? 0).getTime();
+            const tb = new Date(b.sentAt ?? b.ts ?? b.date ?? 0).getTime();
+            return ta - tb; // oldest -> newest
+          })
+          .map(toChatMessage);
+        dispatch(setRoomMessages({ roomId: data.roomId, messages: msgs }));
+        console.log("[MQTT] room history loaded", data.roomId, msgs.length);
+      },
+    });
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!room?.id) return;
+
+    const client = getMqttClient();
+
+    client.joinRoom(room.id);
+
+    client.requestRoomHistory(room.id);
+
+    return () => {
+      // leaving the page / switching away from RoomChat
+      getMqttClient().leaveRoom();
+    };
+  }, [room?.id]);
 
   useEffect(() => {
     scrollDomToBottom();
@@ -1675,13 +1748,51 @@ function RoomChat() {
                     />
                   </div>
                   <div className={styles["chat-message-action-date"]}>
-                    <div>{message.date.toLocaleString()}</div>
+                    <div>
+                      {new Date(message.date).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: true,
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
             </Fragment>
           );
         })}
+      </div>
+
+      {/* room message input for testing message update in agents room, should be delete later*/}
+      <div className={styles["chat-input-panel"]}>
+        <div className={styles["chat-input-panel-inner"]}>
+          <textarea
+            className={styles["chat-input"]}
+            placeholder="Type a room message..."
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={2}
+            style={{ fontSize }}
+            onKeyDown={(e) => {
+              // Enter = send, Shift+Enter = newline
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendToRoom();
+              }
+            }}
+          />
+          <IconButton
+            icon={<SendWhiteIcon />}
+            text="Send"
+            className={styles["chat-input-send"]}
+            type="primary"
+            onClick={sendToRoom}
+          />
+        </div>
       </div>
 
       {showExport && (

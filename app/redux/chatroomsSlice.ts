@@ -124,15 +124,19 @@ const chatroomsSlice = createSlice({
   initialState,
   reducers: {
     setRooms(state, action: PayloadAction<RoomState[]>) {
-      state.rooms = action.payload;
-      if (state.currentRoomId) {
-        const exists = state.rooms.some(
-          (room) => room.id === state.currentRoomId,
-        );
-        if (!exists) {
-          state.currentRoomId = state.rooms[0]?.id ?? null;
-        }
-      }
+      const incoming = action.payload;
+
+      const prevById = new Map(state.rooms.map((r) => [r.id, r]));
+
+      state.rooms = incoming.map((r) => {
+        const prev = prevById.get(r.id);
+
+        return {
+          ...prev, // keep messages, lastUpdate, etc.
+          ...r, // overwrite updated fields from backend (topic, members, etc.)
+          messages: prev?.messages ?? r.messages ?? [],
+        };
+      });
     },
     setCurrentRoomId(state, action: PayloadAction<string>) {
       state.currentRoomId = action.payload;

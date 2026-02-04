@@ -67,8 +67,8 @@ export const metadata: Metadata = {
 const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
-    worker-src 'self';
-    connect-src 'self' blob: data: https: http:;
+    worker-src 'self' blob:;
+    connect-src 'self' blob: data: https: http: ws: wss:;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
