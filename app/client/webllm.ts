@@ -80,16 +80,24 @@ export class WebLLMApi implements LLMApi {
         engine: new ServiceWorkerMLCEngine(engineConfig, KEEP_ALIVE_INTERVAL),
       };
     } else {
-      log.info("Create WebWorkerMLCEngine");
-      this.webllm = {
-        type: "webWorker",
-        engine: new WebWorkerMLCEngine(
-          new Worker(new URL("../worker/web-worker.ts", import.meta.url), {
-            type: "module",
-          }),
-          engineConfig,
-        ),
-      };
+      if (typeof window !== "undefined") {
+        log.info("Create WebWorkerMLCEngine");
+        this.webllm = {
+          type: "webWorker",
+          engine: new WebWorkerMLCEngine(
+            new Worker(new URL("../worker/web-worker.ts", import.meta.url), {
+              type: "module",
+            }),
+            engineConfig,
+          ),
+        };
+      } else {
+        // Fallback for Server-Side Rendering (prevents crash)
+        this.webllm = {
+          type: "webWorker",
+          engine: null as any,
+        };
+      }
     }
   }
 
@@ -97,6 +105,13 @@ export class WebLLMApi implements LLMApi {
     if (!this.llmConfig) {
       throw Error("llmConfig is undefined");
     }
+    // Safety check in case this runs where engine wasn't initialized
+    if (!this.webllm.engine) {
+      throw Error(
+        "WebLLM Engine is not initialized. Are you running on the server?",
+      );
+    }
+
     this.webllm.engine.setInitProgressCallback((report: InitProgressReport) => {
       onUpdate?.(report.text, report.text);
     });
@@ -222,6 +237,11 @@ export class WebLLMApi implements LLMApi {
       usage?: CompletionUsage,
     ) => void,
   ) {
+    // Safety check
+    if (!this.webllm.engine) {
+      throw Error("WebLLM Engine is not initialized.");
+    }
+
     // For Qwen3 models, we need to filter out the <think>...</think> content
     // Do not do it inplace, create a new messages array
     let newMessages: RequestMessage[] | undefined;
