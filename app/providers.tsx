@@ -15,10 +15,10 @@ function MqttBootstrap() {
   useEffect(() => {
     // if (startedRef.current) return;
     // startedRef.current = true;
-    const agentId = "user";
+    const agentId = "raccoon"; // HARD-CODED for now: add agent switching func to take care of this.
     const username = "test_user";
     const clientId = "test_user_1";
-    const brokerUrl = "ws://127.0.0.1:9001";
+    const brokerUrl = "ws://127.0.0.1:9291";
 
     const client = getMqttClient();
 
