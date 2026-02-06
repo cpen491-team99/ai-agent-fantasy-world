@@ -1526,16 +1526,24 @@ function RoomChat() {
     // But senderId can be "user" and senderIsUser=false (treated like an agent).
     const isFrontendUser = !!m.senderIsUser;
 
+    // Right-render check: if fetched message.agentid = currentuseragentID
     const senderId = String(m.senderId ?? "");
+    const backendAgentId = String(m.agentId ?? senderId);
+
+    // Treat messages from the current agent as "user‑aligned" (right side)
+    const isCurrentAgent =
+      !isFrontendUser &&
+      (backendAgentId === currentUserAgentId ||
+        senderId === currentUserAgentId);
 
     return createMessage({
       id: m.id ? String(m.id) : undefined,
       role: isFrontendUser ? "user" : "assistant",
       content: text, // createMessage will normalize
       date: dateObj.toISOString(),
-      agentId: isFrontendUser ? undefined : senderId,
+      agentId: isCurrentAgent ? currentUserAgentId : backendAgentId,
       model: isFrontendUser ? undefined : senderId,
-      isUserAgent: isFrontendUser, // aligns user messages on right
+      isUserAgent: isFrontendUser || isCurrentAgent, // aligns user messages on right
     });
   }
 
@@ -1681,6 +1689,43 @@ function RoomChat() {
           const showTyping = message.streaming;
           const shouldShowAvatar = !isUserAligned || isUserAgentMessage;
 
+          const avatar = (
+            <div className={styles["chat-message-avatar"]}>
+              {shouldShowAvatar && (
+                <>
+                  {message.role === "system" ? (
+                    <Avatar avatar="2699-fe0f" />
+                  ) : (
+                    <TemplateAvatar
+                      avatar={room.roomLogo}
+                      model={message.model || config.modelConfig.model}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          );
+
+          const roleName = (
+            <div className={styles["chat-message-role-name-container"]}>
+              {message.role === "system" && (
+                <div
+                  className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
+                >
+                  {Locale.Chat.Roles.System}
+                </div>
+              )}
+              {message.role === "assistant" && (
+                <div className={styles["chat-message-role-name"]}>
+                  {models.find((m) => m.name === message.model)
+                    ? models.find((m) => m.name === message.model)!.display_name
+                    : message.model}
+                  {isUserAgentMessage ? " (You)" : ""}
+                </div>
+              )}
+            </div>
+          );
+
           return (
             <Fragment key={`${i}/${message.id}`}>
               <div
@@ -1696,38 +1741,17 @@ function RoomChat() {
               >
                 <div className={styles["chat-message-container"]}>
                   <div className={styles["chat-message-header"]}>
-                    <div className={styles["chat-message-avatar"]}>
-                      {shouldShowAvatar && (
-                        <>
-                          {message.role === "system" ? (
-                            <Avatar avatar="2699-fe0f" />
-                          ) : (
-                            <TemplateAvatar
-                              avatar={room.roomLogo}
-                              model={message.model || config.modelConfig.model}
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <div className={styles["chat-message-role-name-container"]}>
-                      {message.role === "system" && (
-                        <div
-                          className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
-                        >
-                          {Locale.Chat.Roles.System}
-                        </div>
-                      )}
-                      {message.role === "assistant" && (
-                        <div className={styles["chat-message-role-name"]}>
-                          {models.find((m) => m.name === message.model)
-                            ? models.find((m) => m.name === message.model)!
-                                .display_name
-                            : message.model}
-                          {isUserAgentMessage ? " (You)" : ""}
-                        </div>
-                      )}
-                    </div>
+                    {isUserAgentMessage ? (
+                      <>
+                        {roleName}
+                        {avatar}
+                      </>
+                    ) : (
+                      <>
+                        {avatar}
+                        {roleName}
+                      </>
+                    )}
                   </div>
                   {showTyping && (
                     <div className={styles["chat-message-status"]}>

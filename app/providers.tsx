@@ -3,22 +3,26 @@
 import React, { useRef, useEffect } from "react";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
-import { useAppDispatch } from "./redux/hooks"; // adjust path
+import { useAppDispatch, useAppSelector } from "./redux/hooks"; // adjust path
 import { setRooms, addMessage } from "./redux/chatroomsSlice"; // adjust path
 import { createMessage } from "./store/chat";
 import { getMqttClient } from "./client/mqtt";
 
 function MqttBootstrap() {
   const dispatch = useAppDispatch();
+  const currentUserAgentId = useAppSelector(
+    (state) => state.chatrooms.currentUserAgentId,
+  );
   // const startedRef = useRef(false);
 
   useEffect(() => {
     // if (startedRef.current) return;
     // startedRef.current = true;
-    const agentId = "user";
+    const agentId = currentUserAgentId;
     const username = "test_user";
     const clientId = "test_user_1";
-    const brokerUrl = "ws://127.0.0.1:9001";
+    const port = process.env.NEXT_PUBLIC_MQTT_FRONTEND_PORT_NUMBER || "9001";
+    const brokerUrl = `ws://127.0.0.1:${port}`;
 
     const client = getMqttClient();
 
@@ -78,7 +82,7 @@ function MqttBootstrap() {
     });
 
     return () => client.disconnect();
-  }, [dispatch]);
+  }, [dispatch, currentUserAgentId]);
 
   return null;
 }
