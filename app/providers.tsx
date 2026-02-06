@@ -21,7 +21,8 @@ function MqttBootstrap() {
     const agentId = currentUserAgentId;
     const username = "test_user";
     const clientId = "test_user_1";
-    const brokerUrl = "ws://127.0.0.1:9291";
+    const port = process.env.NEXT_PUBLIC_MQTT_FRONTEND_PORT_NUMBER || "9001";
+    const brokerUrl = `ws://127.0.0.1:${port}`;
 
     const client = getMqttClient();
 
