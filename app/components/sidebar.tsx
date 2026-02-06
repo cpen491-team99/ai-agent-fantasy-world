@@ -11,12 +11,16 @@ import DragIcon from "../icons/drag.svg";
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
 import AutoIcon from "../icons/auto.svg";
+import PawIcon from "../icons/paw-print.svg";
 
 import Locale from "../locales";
 
 import { Theme, useAppConfig } from "../store";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { setCurrentRoomId } from "../redux/chatroomsSlice";
+import {
+  setCurrentRoomId,
+  setCurrentUserAgentId,
+} from "../redux/chatroomsSlice";
 
 import {
   DEFAULT_SIDEBAR_WIDTH,
@@ -147,7 +151,11 @@ export function SideBar(props: { className?: string }) {
   const dispatch = useAppDispatch();
   const rooms = useAppSelector((state) => state.chatrooms.rooms);
   const chatroomsState = useAppSelector((state) => state.chatrooms);
+  const currentUserAgentId = useAppSelector(
+    (state) => state.chatrooms.currentUserAgentId,
+  );
   const [showReduxState, setShowReduxState] = useState(false);
+  const [showAgentMenu, setShowAgentMenu] = useState(false);
 
   // drag side bar
   const { onDragStart, shouldNarrow } = useDragSideBar();
@@ -168,6 +176,15 @@ export function SideBar(props: { className?: string }) {
     const nextTheme = themes[nextIndex];
     config.update((config) => (config.theme = nextTheme));
   }
+
+  // Sample user myAgent selection menu. For the future, Each user will have their own unique lists of agents to choose from.
+  const agentOptions = [
+    { id: "raccoon", label: "Raccoon" },
+    { id: "fox", label: "Fox" },
+    { id: "bunny", label: "Bunny" },
+    { id: "cat", label: "Cat" },
+    { id: "dog", label: "Dog" },
+  ];
 
   return (
     <div
@@ -268,6 +285,38 @@ export function SideBar(props: { className?: string }) {
               onClick={nextTheme}
               shadow
             />
+          </div>
+          <div className={styles["sidebar-action"]}>
+            <div className={styles["agent-selector"]}>
+              <IconButton
+                icon={<PawIcon />}
+                onClick={() => setShowAgentMenu((v) => !v)}
+                shadow
+              />
+              {showAgentMenu && (
+                <div className={styles["agent-menu"]}>
+                  {agentOptions.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={
+                        styles["agent-menu-item"] +
+                        (opt.id === currentUserAgentId
+                          ? " " + styles["agent-menu-item-active"]
+                          : "")
+                      }
+                      onClick={() => {
+                        dispatch(setCurrentUserAgentId(opt.id));
+                        setShowAgentMenu(false);
+                        showToast?.(`Switched agent to ${opt.label}`);
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {/* <div>

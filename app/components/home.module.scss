@@ -360,6 +360,43 @@
   display: inline-flex;
 }
 
+.agent-selector {
+  position: relative;
+}
+
+.agent-menu {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  z-index: 20;
+  background-color: var(--white);
+  border: var(--border-in-light);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  padding: 4px 0;
+  min-width: 120px;
+}
+
+.agent-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--black);
+}
+
+.agent-menu-item:hover {
+  background-color: var(--second);
+}
+
+.agent-menu-item-active {
+  font-weight: 600;
+}
+
 // For redux testing
 .redux-panel {
   margin-top: 12px;
