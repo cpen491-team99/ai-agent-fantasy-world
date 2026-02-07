@@ -9,10 +9,18 @@ export type RoomState = {
   lastUpdate: number;
 };
 
+/** Private "My Agent" chat (chat.tsx) — not shown in sidebar; agent-agent rooms only. */
+export type PrivateChatState = {
+  messages: ChatMessage[];
+  lastUpdate: number;
+};
+
 export type ChatRoomsState = {
   rooms: RoomState[];
   currentRoomId: string | null;
   currentUserAgentId: string;
+  /** Private user–agent chat; separate from rooms so it doesn't appear in sidebar. */
+  privateChat: PrivateChatState;
 };
 
 function createAgentMessage(
@@ -113,10 +121,15 @@ function createMockRooms(currentUserAgentId: string): RoomState[] {
 
 const initialUserAgentId = "raccoon";
 
+/** Id for the private "My Agent" chat (chat.tsx). Used for currentRoomId only; not in rooms[]. */
+// Might want to change this to include the currentuserAgentID?
+export const PRIVATE_ROOM_ID = "private-room";
+
 const initialState: ChatRoomsState = {
   rooms: createMockRooms(initialUserAgentId),
   currentRoomId: "room_1",
   currentUserAgentId: initialUserAgentId,
+  privateChat: { messages: [], lastUpdate: 0 },
 };
 
 const chatroomsSlice = createSlice({
@@ -172,6 +185,14 @@ const chatroomsSlice = createSlice({
       room.messages = action.payload.messages;
       room.lastUpdate = Date.now();
     },
+    setPrivateChatMessages(state, action: PayloadAction<ChatMessage[]>) {
+      state.privateChat.messages = action.payload;
+      state.privateChat.lastUpdate = Date.now();
+    },
+    addPrivateChatMessage(state, action: PayloadAction<ChatMessage>) {
+      state.privateChat.messages.push(action.payload);
+      state.privateChat.lastUpdate = Date.now();
+    },
   },
 });
 
@@ -182,6 +203,8 @@ export const {
   setCurrentUserAgentId,
   addMessage,
   setRoomMessages,
+  setPrivateChatMessages,
+  addPrivateChatMessage,
 } = chatroomsSlice.actions;
 
 export default chatroomsSlice.reducer;

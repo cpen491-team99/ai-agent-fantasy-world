@@ -93,6 +93,13 @@ import Image from "next/image";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { ChatImage } from "../typing";
 import ModelSelect from "./model-select";
+import { useAppDispatch } from "../redux/hooks";
+import {
+  setPrivateChatMessages,
+  addPrivateChatMessage,
+  setCurrentRoomId,
+  PRIVATE_ROOM_ID,
+} from "../redux/chatroomsSlice";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -605,9 +612,9 @@ function _Chat() {
   const [showEditPromptModal, setShowEditPromptModal] = useState(false);
   const webllm = useContext(WebLLMContext)!;
   const mlcllm = useContext(MLCLLMContext)!;
+  const dispatch = useAppDispatch();
 
   // --- My Agent (private chat via MQTT) ---
-  const PRIVATE_ROOM_ID = "private-room";
   const MY_AGENT_ID = "user"; // must match your frontend agentId (same as Providers bootstrap)
   const recentlySentRef = useRef<Array<{ content: string; ts: number }>>([]);
 
@@ -653,6 +660,7 @@ function _Chat() {
         chatStoreRef.current.updateCurrentSession((s) => {
           s.messages = msgs;
         });
+        dispatch(setPrivateChatMessages(msgs));
       },
 
       onChatOut: (msg) => {
@@ -674,18 +682,18 @@ function _Chat() {
           }
         }
 
-        chatStoreRef.current.updateCurrentSession((s) => {
-          s.messages.push(
-            createMessage({
-              role: senderIsMe ? "user" : "assistant",
-              content: msg.msg,
-              date: new Date(msg.ts ?? Date.now()).toISOString(),
-              agentId: senderIsMe ? undefined : msg.fromAgentId,
-              model: senderIsMe ? undefined : msg.fromAgentId,
-              isUserAgent: senderIsMe,
-            }),
-          );
+        const newMsg = createMessage({
+          role: senderIsMe ? "user" : "assistant",
+          content: msg.msg,
+          date: new Date(msg.ts ?? Date.now()).toISOString(),
+          agentId: senderIsMe ? undefined : msg.fromAgentId,
+          model: senderIsMe ? undefined : msg.fromAgentId,
+          isUserAgent: senderIsMe,
         });
+        chatStoreRef.current.updateCurrentSession((s) => {
+          s.messages.push(newMsg);
+        });
+        dispatch(addPrivateChatMessage(newMsg));
       },
     });
 
@@ -693,6 +701,11 @@ function _Chat() {
       unsubscribe(); // ✅ prevents “16 copies” forever
     };
   }, []);
+
+  // Reflect in Redux that we're on the private agent chat (currentRoomId; room not in sidebar list)
+  useEffect(() => {
+    dispatch(setCurrentRoomId(PRIVATE_ROOM_ID));
+  }, [dispatch]);
 
   useEffect(() => {
     const client = getMqttClient();
@@ -806,17 +819,18 @@ function _Chat() {
     const msgText = userInput;
 
     // Optimistically render the user's message
-    recentlySentRef.current.push({ content: msgText, ts: now });
-    chatStore.updateCurrentSession((s) => {
-      s.messages.push(
-        createMessage({
-          role: "user",
-          content: msgText,
-          date: new Date(now).toISOString(),
-          isUserAgent: true,
-        }),
-      );
+    const userMsg = createMessage({
+      role: "user",
+      content: msgText,
+      date: new Date(now).toISOString(),
+      isUserAgent: true,
     });
+    recentlySentRef.current.push({ content: msgText, ts: now });
+    // chat.ts, line 665 shows that onUserInput does call updateCurrentSession, so no need to double send it.
+    /* chatStore.updateCurrentSession((s) => {
+      s.messages.push(userMsg);
+    }); */
+    dispatch(addPrivateChatMessage(userMsg));
 
     try {
       getMqttClient().sendRoomMessage(PRIVATE_ROOM_ID, msgText);
@@ -825,8 +839,8 @@ function _Chat() {
       showToast("Failed to send message.");
     }
 
-    // chatStore.onUserInput(userInput, llm, attachImages);
-    // setAttachImages([]);
+    chatStore.onUserInput(userInput, llm, attachImages);
+    setAttachImages([]);
     localStorage.setItem(LAST_INPUT_KEY, userInput);
     setUserInput("");
     setPromptHints([]);
