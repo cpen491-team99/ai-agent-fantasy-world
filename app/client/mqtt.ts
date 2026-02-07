@@ -60,6 +60,7 @@ export type MemoryFindResponse = {
   textQuery?: string;
   results?: any[];
   error?: string;
+  agentId?: string;
 };
 
 type BufferedMessage = {

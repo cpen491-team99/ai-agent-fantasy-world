@@ -593,7 +593,7 @@ function _Chat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
   const pendingSearchQuery = useRef("");
-  const TARGET_AGENT_ID = "agentA";
+  const TARGET_AGENT_ID = "dog";
   const { submitKey, shouldSubmit } = useSubmitHandler();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrolledToBottom = scrollRef?.current
@@ -656,15 +656,15 @@ function _Chat() {
           .sort((a, b) => {
             const ta = new Date(a.sentAt ?? a.ts ?? a.date ?? 0).getTime();
             const tb = new Date(b.sentAt ?? b.ts ?? b.date ?? 0).getTime();
-            return ta - tb; // oldest -> newest
+            return ta - tb;
           })
           .map(toChatMessage);
+
         chatStoreRef.current.updateCurrentSession((s) => {
-          s.messages = msgs;
+          s.messages = [...msgs];
         });
         dispatch(setPrivateChatMessages(msgs));
       },
-
       onChatOut: (msg) => {
         if (msg.roomId !== PRIVATE_ROOM_ID) return;
 
@@ -798,7 +798,6 @@ function _Chat() {
     }
   };
 
-  const chatStoreRef = useRef(chatStore);
   chatStoreRef.current = chatStore;
   const llmRef = useRef(llm);
   llmRef.current = llm;
@@ -808,17 +807,15 @@ function _Chat() {
   useEffect(() => {
     const client = getMqttClient();
 
-    if (client.mqttClient) {
-      const topic = "agents/+/memory/find/response/+";
-      client.mqttClient.subscribe(topic, (err) => {
-        if (!err) console.log(`[Chat] Subscribed to ${topic}`);
-      });
-    }
-
     const unsubscribe = client.addHandlers({
       onMemoryFind: async (data) => {
-        if (data.agentId && data.agentId !== TARGET_AGENT_ID) return;
-        if (!pendingSearchQuery.current) return;
+        if (data.agentId && data.agentId !== TARGET_AGENT_ID) {
+          return;
+        }
+
+        if (!pendingSearchQuery.current) {
+          return;
+        }
 
         const validMemories = (data.results || []).filter(
           (r: any) => r.score > 0.75,
@@ -913,7 +910,6 @@ User: "${pendingSearchQuery.current}"`;
     if (userInput.trim() === "") return;
     if (isStreaming) return;
 
-    //System Commands
     const matchCommand = chatCommands.match(userInput);
     if (matchCommand.matched) {
       setUserInput("");
@@ -922,40 +918,37 @@ User: "${pendingSearchQuery.current}"`;
       return;
     }
 
-    // Save the query so the useEffect listener knows what to answer
     pendingSearchQuery.current = userInput;
-
-    // My Agent uses MQTT (no WebLLM streaming here)
-    if (attachImages.length > 0) {
-      showToast("Images are not supported in My Agent yet.");
-      setAttachImages([]);
-    }
+    recentlySentRef.current.push({ content: userInput, ts: Date.now() });
 
     const now = Date.now();
-    const msgText = userInput;
-
-    // Optimistically render the user's message
     const userMsg = createMessage({
       role: "user",
-      content: msgText,
+      content: userInput,
       date: new Date(now).toISOString(),
       isUserAgent: true,
     });
-    recentlySentRef.current.push({ content: msgText, ts: now });
-    // chat.ts, line 665 shows that onUserInput does call updateCurrentSession, so no need to double send it.
-    /* chatStore.updateCurrentSession((s) => {
+
+    chatStore.updateCurrentSession((s) => {
       s.messages.push(userMsg);
-    }); */
+    });
+
     dispatch(addPrivateChatMessage(userMsg));
 
     try {
-      getMqttClient().sendRoomMessage(PRIVATE_ROOM_ID, msgText);
+      getMqttClient().sendRoomMessage(PRIVATE_ROOM_ID, userInput);
     } catch (e) {
       console.error("[MQTT] failed to send", e);
-      showToast("Failed to send message.");
     }
 
-    chatStore.onUserInput(userInput, llm, attachImages);
+    try {
+      console.log(`[Chat] Requesting memories for agent: ${TARGET_AGENT_ID}`);
+      getMqttClient().requestAgentMemoryFind(userInput, TARGET_AGENT_ID);
+    } catch (e) {
+      console.error("MQTT Error", e);
+      showToast("Error: Backend not connected");
+    }
+
     setAttachImages([]);
     localStorage.setItem(LAST_INPUT_KEY, userInput);
     setUserInput("");
