@@ -1,93 +1,131 @@
 <div align="center">
 
-# WebLLM Chat
+# The Town
 
-<a href="https://github.com/mlc-ai/web-llm"><img alt="Related Repository: WebLLM" src="https://img.shields.io/badge/Related_Repo-WebLLM-fafbfc?logo=github"></a>
-<a href="https://chat.webllm.ai"><img alt="Web App Deployed on GitHub Pages" src="https://img.shields.io/badge/Web_App-Deployed-32a852?logo=pwa"></a>
-<a href="https://discord.gg/9Xpy2HGBuD"><img alt="Join Discord" src="https://img.shields.io/badge/Join-Discord-7289DA?logo=discord&logoColor=white"></a>
+**An AI Fantasy World Built by Agents**
 
-**Private AI Conversations, Fully In-Browser.**
-
-[**Chat Now**](https://chat.webllm.ai/)
-
-[WebLLM Chat Demo Video](https://github.com/mlc-ai/web-llm-chat/assets/23090573/f700e27e-bb88-4068-bc8b-8a33ea5a4300)
+A self-generating story filled with unique animal characters—raccoons, cats, eagles, snakes, and more—each with their own personality, memories, and relationships. All running locally on your device.
 
 </div>
 
 ## Overview
 
-**WebLLM Chat** is a private AI chat interface that combines [WebLLM](https://github.com/mlc-ai/web-llm) with a user-friendly design, leveraging WebGPU to run large language models (LLMs) natively in your browser. Enjoy an unprecedented, private, and accessible AI conversation experience.
+**The Town** is an AI-powered fantasy world where autonomous agents interact, form relationships, and evolve over time. Built on [WebLLM](https://github.com/mlc-ai/web-llm), the experience runs entirely in your browser with WebGPU acceleration—no cloud API calls required.
+
+Watch as AI agents with distinct personalities chat with each other, build memories, and respond to your interactions. Each agent remembers past conversations and grows from their experiences.
 
 ## Key Features
 
-- **Browser-Native AI**: Experience cutting-edge language models running natively within your web browser with WebGPU acceleration, eliminating the need for server-side processing or cloud dependencies.
-- **Ganranteed Privacy**: With the AI model running locally on your hardware and all data processing happening within your browser, your data and conversations never leave your computer, ensuring your privacy.
-- **Offline Accessibility**: Run entirely offline after the initial setup and download, allowing you to engage with AI-powered conversations without an active internet connection.
-- **Vision Model Support**: Chat with AI by uploading and sending images, making it easy to get insights and answers based on visual content.
-- **User-Friendly Interface**: Enjoy the intuitive and feature-rich user interface, complete with markdown support, dark mode, and a responsive design optimized for various screen sizes.
-- **Custom Models**: Connect to any custom language model on you local environment through [MLC-LLM](https://llm.mlc.ai/). For detail, check the [Use Custom Models](#use-custom-models) section.
-- **Open Source and Customizable**: Build and customize your own AI-powered applications with our open-source framework.
+- **🦝 Unique Characters** — Every resident is an AI agent with distinct mannerisms and personality
+- **💬 Living Conversations** — Watch agents interact naturally, form opinions, and build relationships
+- **🧠 Evolving Memories** — Agents remember past interactions and grow from their experiences
+- **🔒 Privacy-First** — Inference runs entirely in your browser; your data never leaves your device
+- **📡 Real-Time Chat** — MQTT-powered messaging for live agent interactions
+- **🌙 Dark Mode** — Beautiful light and dark themes with modern glassmorphic design
 
-WebLLM Chat is a pioneering initiative that combines the robust backend capabilities of WebLLM with the user-friendly interface of NextChat. As a part of the broader MLC.ai family, this project contributes to our mission of democratizing AI technology by making powerful tools accessible directly to end-users. By integrating with NextChat, WebLLM Chat not only enhances the chatting experience but also broadens the scope for deployment of self-hosted and customizable language models.
+## Tech Stack
 
-## Built-in Models
+- **Frontend**: Next.js 13, React 18, TypeScript
+- **LLM Runtime**: WebLLM with WebGPU acceleration
+- **State Management**: Redux Toolkit + Zustand
+- **Styling**: SCSS with CSS variables
+- **Real-Time**: MQTT over WebSocket
+- **Build**: Yarn, ESLint, Prettier, Husky
 
-WebLLM Chat natively supports WebLLM build-in models. You can find the full list [here](https://github.com/mlc-ai/web-llm?tab=readme-ov-file#built-in-models).
+## Getting Started
 
-## Use Custom Models
+### Prerequisites
 
-WebLLM Chat supports custom language models through [MLC-LLM](https://llm.mlc.ai/). Follow the following steps to use custom models on your local environment:
+- Node.js 18+
+- Yarn
+- A WebGPU-compatible browser (Chrome 113+, Edge 113+)
 
-1. (Optional) Compile the model into MLC format by following [the instructions](https://llm.mlc.ai/docs/compilation/convert_weights.html).
+### Development
 
-2. Host REST API through MLC-LLM by following [the instructions](https://llm.mlc.ai/docs/deploy/rest.html).
-
-3. Go to [WebLLM Chat](https://chat.webllm.ai/), select "Settings" in the side bar, then select "MLC-LLM REST API (Advanced)" as "Model Type" and type the REST API endpoint URL from step 2.
-
-## Development
-
-```shell
-# 1. install nodejs and yarn first
-# 2. config local env vars in `.env.local`
-# 3. run
+```bash
+# Install dependencies
 yarn install
+
+# Configure environment variables
+cp .env.example .env.local
+
+# Start development server
 yarn dev
 ```
 
-## Deployment
+The app will be available at `http://localhost:3000`.
 
-### Build
+### Environment Variables
 
-You can build the application as a Next.js build using `yarn build` or as a static site using `yarn export`. For more information, check [Next.js documentation](https://nextjs.org/docs/pages/building-your-application/deploying);
+Create a `.env.local` file with the following:
+
+```env
+NEXT_PUBLIC_MQTT_FRONTEND_PORT_NUMBER=9001
+```
+
+## Build & Deployment
+
+### Production Build
+
+```bash
+# Build for production (standalone Next.js)
+yarn build
+
+# Start production server
+yarn start
+```
+
+### Static Export
+
+```bash
+# Export as static site
+yarn export
+```
 
 ### Docker
 
-```shell
-docker build -t webllm_chat .
-docker run -d -p 3000:3000 webllm_chat
+```bash
+# Build Docker image
+docker build -t the-town-frontend .
+
+# Run container
+docker run -d -p 3000:3000 the-town-frontend
 ```
 
-You can start service behind a proxy:
+## Project Structure
 
-```shell
-docker build -t webllm_chat .
-docker run -d -p 3000:3000 \
-   -e PROXY_URL=http://localhost:7890 \
-   webllm_chat
+```
+frontend/
+├── app/
+│   ├── client/       # API clients (WebLLM, MQTT)
+│   ├── components/   # React components
+│   ├── icons/        # SVG icons
+│   ├── redux/        # Redux store and slices
+│   ├── store/        # Zustand stores
+│   ├── styles/       # SCSS stylesheets
+│   └── worker/       # Web Workers for LLM
+├── public/           # Static assets
+└── scripts/          # Build scripts
 ```
 
-If your proxy needs password, use:
+## Scripts
 
-```shell
--e PROXY_URL="http://127.0.0.1:7890 user pass"
-```
-
-## Community and Contributions
-
-WebLLM Chat thrives on community involvement. We are committed to fostering an inclusive and innovative community where developers and AI enthusiasts can collaborate, contribute, and push the boundaries of what's possible in AI technology. Join us on Discord to connect with fellow developers and contribute to the project.
+| Command | Description |
+|---------|-------------|
+| `yarn dev` | Start development server |
+| `yarn build` | Build for production |
+| `yarn start` | Start production server |
+| `yarn lint` | Run ESLint |
+| `yarn export` | Export as static site |
 
 ## Acknowledgements
 
-WebLLM Chat is a companion project of [WebLLM](https://github.com/mlc-ai/web-llm/) and it is built upon the remarkable work of [NextChat](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web). We extend our sincere gratitude to the developers and contributors of these projects for their invaluable efforts in advancing the field of browser-based AI and creating user-friendly chat interfaces.
+The Town is built upon the work of:
 
-Further more, this project is only possible thanks to the shoulders of open-source ecosystems that we stand on. We want to thank the Apache TVM community and developers of the TVM Unity effort. The open-source ML community members made these models publicly available. PyTorch and Hugging Face communities make these models accessible. We would like to thank the teams behind Vicuna, SentencePiece, LLaMA, Alpaca. We also would like to thank the WebAssembly, Emscripten, and WebGPU communities. Finally, thanks to Dawn and WebGPU developers.
+- [WebLLM](https://github.com/mlc-ai/web-llm/) — Browser-native LLM inference
+- [NextChat](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web) — Chat UI foundation
+- [MLC-LLM](https://llm.mlc.ai/) — Model compilation and deployment
+
+## License
+
+Apache-2.0 — See [LICENSE](./LICENSE) for details.
