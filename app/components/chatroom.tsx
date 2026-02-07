@@ -95,6 +95,7 @@ import { useAppDispatch } from "../redux/hooks";
 import { addMessage, setRoomMessages } from "../redux/chatroomsSlice";
 import { getMqttClient } from "../client/mqtt";
 import { createMessage, type ChatMessage } from "../store/chat";
+import { useChatroomStore, shouldAgentRespond } from "../store/chatroom-store";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -454,7 +455,9 @@ function useScrollToBottom(
   // for auto-scroll
 
   const [autoScroll, setAutoScroll] = useState(true);
-  function scrollDomToBottom() {
+
+  // Memoize scrollDomToBottom to prevent it from causing effect re-runs
+  const scrollDomToBottom = useCallback(() => {
     const dom = scrollRef.current;
     if (dom) {
       requestAnimationFrame(() => {
@@ -462,14 +465,14 @@ function useScrollToBottom(
         dom.scrollTo(0, dom.scrollHeight);
       });
     }
-  }
+  }, [scrollRef]);
 
-  // auto scroll
+  // auto scroll - only run when autoScroll state changes, not on every render
   useEffect(() => {
     if (autoScroll && !detach) {
       scrollDomToBottom();
     }
-  });
+  }, [autoScroll, detach, scrollDomToBottom]);
 
   return {
     scrollRef,
@@ -1515,7 +1518,23 @@ function RoomChat() {
   const [hitBottom, setHitBottom] = useState(true);
   const [showExport, setShowExport] = useState(false);
 
-  const messages: ChatMessage[] = room?.messages ?? [];
+  // Agent inference store
+  const chatroomStore = useChatroomStore();
+  const { isGenerating: isAgentGenerating, currentStreamingMessage } =
+    chatroomStore;
+
+  // Get LLM context for agent inference
+  const webllm = useContext(WebLLMContext)!;
+  const llm = webllm;
+
+  const messages: ChatMessage[] = useMemo(() => {
+    const roomMessages = room?.messages ?? [];
+    // Include streaming message if agent is generating
+    if (currentStreamingMessage && isAgentGenerating) {
+      return [...roomMessages, currentStreamingMessage];
+    }
+    return roomMessages;
+  }, [room?.messages, currentStreamingMessage, isAgentGenerating]);
   const models = config.models;
 
   function toChatMessage(m: any): ChatMessage {
@@ -1547,8 +1566,12 @@ function RoomChat() {
     });
   }
 
+  // Refs to access latest values without triggering re-subscription
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
   useEffect(() => {
-    getMqttClient().setHandlers({
+    const unsubscribe = getMqttClient().addHandlers({
       onRoomHistory: (data) => {
         if (data.error) {
           console.warn("[MQTT] room history error:", data.error);
@@ -1565,8 +1588,60 @@ function RoomChat() {
         dispatch(setRoomMessages({ roomId: data.roomId, messages: msgs }));
         console.log("[MQTT] room history loaded", data.roomId, msgs.length);
       },
+      // onChatOut: (data) => {
+      //   // Add incoming message to Redux
+      //   const incomingMessage = toChatMessage({
+      //     id: `${data.roomId}-${data.ts ?? Date.now()}`,
+      //     text: data.msg,
+      //     senderId: data.fromAgentId,
+      //     senderIsUser: false,
+      //     sentAt: data.ts ? new Date(data.ts).toISOString() : new Date().toISOString(),
+      //   });
+
+      //   // Only add if not from self (to avoid duplicates)
+      //   if (data.fromAgentId !== currentUserAgentId) {
+      //     dispatch(addMessage({ roomId: data.roomId, message: incomingMessage }));
+
+      //     // Check if agent should respond
+      //     if (shouldAgentRespond()) {
+      //       // Get updated messages including the new one
+      //       const updatedMessages = [...messagesRef.current, incomingMessage];
+      //       useChatroomStore.getState().onAgentRespond(
+      //         llm,
+      //         data.roomId,
+      //         updatedMessages,
+      //         incomingMessage,
+      //       );
+      //     }
+      //   }
+      // },
     });
-  }, [dispatch]);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch, currentUserAgentId, llm]);
+
+  // Set up agent config when user agent changes and sync with MQTT
+  useEffect(() => {
+    if (currentUserAgentId) {
+      // Sync agent config in chatroom store
+      useChatroomStore.getState().setAgentConfig({
+        agentId: currentUserAgentId,
+        agentName:
+          currentUserAgentId.charAt(0).toUpperCase() +
+          currentUserAgentId.slice(1),
+        systemPrompt: `You are ${currentUserAgentId}, an AI agent in a fantasy world chatroom. Respond naturally and conversationally to other agents. Keep responses concise. Your response should be in the format of pure text with nothing else. Do not include the name of the agent in your response.`,
+      });
+
+      // Sync MQTT client's agent ID with Redux state
+      getMqttClient().setAgentId(
+        currentUserAgentId,
+        currentUserAgentId.charAt(0).toUpperCase() +
+          currentUserAgentId.slice(1),
+      );
+    }
+  }, [currentUserAgentId]);
 
   useEffect(() => {
     if (!room?.id) return;
@@ -1583,9 +1658,16 @@ function RoomChat() {
     };
   }, [room?.id]);
 
+  // Track previous message count to only scroll on new messages
+  const prevMessageCountRef = useRef(messages.length);
+
   useEffect(() => {
-    scrollDomToBottom();
-  }, [messages.length, scrollDomToBottom]);
+    // Only scroll to bottom if new messages were added AND user was at the bottom
+    if (messages.length > prevMessageCountRef.current && hitBottom) {
+      scrollDomToBottom();
+    }
+    prevMessageCountRef.current = messages.length;
+  }, [messages.length, hitBottom, scrollDomToBottom]);
 
   const onChatBodyScroll = (dom: HTMLDivElement) => {
     const atBottom =
@@ -1657,6 +1739,42 @@ function RoomChat() {
               onClick={() => {
                 setShowExport(true);
               }}
+            />
+          </div>
+          <div className="window-action-button">
+            <IconButton
+              icon={<RobotIcon />}
+              bordered
+              title={
+                chatroomStore.autoRespondEnabled
+                  ? "Disable Auto-Respond"
+                  : "Enable Auto-Respond"
+              }
+              onClick={() => {
+                const newEnabled = !chatroomStore.autoRespondEnabled;
+                useChatroomStore.getState().setAutoRespond(newEnabled);
+
+                // If enabling, trigger immediate response to last message
+                if (newEnabled && room && messages.length > 0) {
+                  // Find last message not from current agent
+                  const lastOtherMessage = [...messages]
+                    .reverse()
+                    .find((m) => m.agentId !== currentUserAgentId);
+
+                  if (lastOtherMessage) {
+                    console.log(
+                      "[Auto-Respond] Triggering response to:",
+                      lastOtherMessage,
+                    );
+                    useChatroomStore
+                      .getState()
+                      .onAgentRespond(llm, room.id, messages, lastOtherMessage);
+                  }
+                }
+              }}
+              className={
+                chatroomStore.autoRespondEnabled ? styles["selected"] : ""
+              }
             />
           </div>
           {showMaxIcon && (
@@ -1792,7 +1910,7 @@ function RoomChat() {
       </div>
 
       {/* room message input for testing message update in agents room, should be delete later*/}
-      <div className={styles["chat-input-panel"]}>
+      {/* <div className={styles["chat-input-panel"]}>
         <div className={styles["chat-input-panel-inner"]}>
           <textarea
             className={styles["chat-input"]}
@@ -1817,7 +1935,7 @@ function RoomChat() {
             onClick={sendToRoom}
           />
         </div>
-      </div>
+      </div> */}
 
       {showExport && (
         <ExportMessageModal onClose={() => setShowExport(false)} />

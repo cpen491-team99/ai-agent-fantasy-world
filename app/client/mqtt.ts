@@ -445,7 +445,45 @@ export class FrontendMqttClient {
     );
   }
 
-  requestRoomHistory(roomId: string, limit = 20, before: string | null = null) {
+  /**
+   * Send a room message as a specific agent (useful when agent ID differs from connection ID)
+   */
+  sendRoomMessageAs(
+    roomId: string,
+    msg: string,
+    agentId: string,
+    agentName?: string,
+  ) {
+    if (!this.opts) throw new Error("MQTT client not connected yet");
+
+    this.safePublish(
+      `rooms/${roomId}/chat/in`,
+      JSON.stringify({
+        roomId,
+        fromAgentId: agentId,
+        fromUsername: agentName || agentId,
+        type: "text",
+        msg,
+        ts: Date.now(),
+      }),
+    );
+  }
+
+  /**
+   * Update the agent ID used for subsequent operations
+   */
+  setAgentId(agentId: string, username?: string) {
+    if (this.opts) {
+      this.opts.agentId = agentId;
+      if (username) this.opts.username = username;
+    }
+  }
+
+  requestRoomHistory(
+    roomId: string,
+    limit = 100,
+    before: string | null = null,
+  ) {
     if (!this.opts) throw new Error("MQTT client not connected yet");
     const { agentId } = this.opts;
     const requestId = `${agentId}-${Date.now()}`;
