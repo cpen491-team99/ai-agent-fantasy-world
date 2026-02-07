@@ -362,6 +362,14 @@
   }
 }
 
+.chat-message-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  display: block;
+}
+
 .chat-message-user {
   display: flex;
   flex-direction: row-reverse;

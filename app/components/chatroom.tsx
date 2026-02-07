@@ -33,6 +33,9 @@ import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
 
+// Styles
+import { getAgentAvatar } from "../utils/agent-avatar";
+
 import {
   SubmitKey,
   useChatStore,
@@ -1807,12 +1810,23 @@ function RoomChat() {
           const showTyping = message.streaming;
           const shouldShowAvatar = !isUserAligned || isUserAgentMessage;
 
+          const avatarImageSrc =
+            message.agentId && shouldShowAvatar
+              ? getAgentAvatar(message.agentId)
+              : undefined;
+
           const avatar = (
             <div className={styles["chat-message-avatar"]}>
               {shouldShowAvatar && (
                 <>
                   {message.role === "system" ? (
                     <Avatar avatar="2699-fe0f" />
+                  ) : avatarImageSrc ? (
+                    <img
+                      src={avatarImageSrc}
+                      alt={message.agentId ?? "agent"}
+                      className={styles["chat-message-avatar-img"]}
+                    />
                   ) : (
                     <TemplateAvatar
                       avatar={room.roomLogo}

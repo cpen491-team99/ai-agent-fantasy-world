@@ -36,6 +36,7 @@ import { useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 import { showToast } from "./ui-lib";
+import { getAgentAvatar } from "../utils/agent-avatar";
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -311,6 +312,11 @@ export function SideBar(props: { className?: string }) {
                         showToast?.(`Switched agent to ${opt.label}`);
                       }}
                     >
+                      <img
+                        src={getAgentAvatar(opt.id)}
+                        alt={opt.label}
+                        className={styles["agent-menu-avatar"]}
+                      />
                       {opt.label}
                     </button>
                   ))}
