@@ -592,6 +592,8 @@ function _Chat() {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
+  const pendingSearchQuery = useRef("");
+  const TARGET_AGENT_ID = "agentA";
   const { submitKey, shouldSubmit } = useSubmitHandler();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrolledToBottom = scrollRef?.current
@@ -796,9 +798,122 @@ function _Chat() {
     }
   };
 
+  const chatStoreRef = useRef(chatStore);
+  chatStoreRef.current = chatStore;
+  const llmRef = useRef(llm);
+  llmRef.current = llm;
+  const configRef = useRef(config);
+  configRef.current = config;
+
+  useEffect(() => {
+    const client = getMqttClient();
+
+    if (client.mqttClient) {
+      const topic = "agents/+/memory/find/response/+";
+      client.mqttClient.subscribe(topic, (err) => {
+        if (!err) console.log(`[Chat] Subscribed to ${topic}`);
+      });
+    }
+
+    const unsubscribe = client.addHandlers({
+      onMemoryFind: async (data) => {
+        if (data.agentId && data.agentId !== TARGET_AGENT_ID) return;
+        if (!pendingSearchQuery.current) return;
+
+        const validMemories = (data.results || []).filter(
+          (r: any) => r.score > 0.75,
+        );
+        let finalUserContent = "";
+
+        if (validMemories.length > 0) {
+          const contextText = validMemories
+            .map((r: any) => `"${r.text}" (said in ${r.location})`)
+            .join("\n");
+
+          finalUserContent = `
+[SYSTEM: You have a faint memory of the following interactions:
+${contextText}
+Use this context ONLY if relevant. If not helpful, IGNORE and respond naturally.]
+
+User: "${pendingSearchQuery.current}"`;
+        } else {
+          finalUserContent = pendingSearchQuery.current;
+        }
+
+        const currentStore = chatStoreRef.current;
+        const currentLLM = llmRef.current;
+        const currentConfig = configRef.current;
+
+        const botMsgId = Date.now().toString();
+        currentStore.updateCurrentSession((s) => {
+          s.messages.push(
+            createMessage({
+              id: botMsgId,
+              role: "assistant",
+              content: "...",
+              model: currentConfig.modelConfig.model,
+              date: new Date().toISOString(),
+            }),
+          );
+        });
+
+        const history = currentStore
+          .currentSession()
+          .messages.filter((m) => m.id !== botMsgId);
+        const messagesForLLM = [...history];
+
+        if (
+          messagesForLLM.length > 0 &&
+          messagesForLLM[messagesForLLM.length - 1].role === "user"
+        ) {
+          messagesForLLM.pop();
+        }
+
+        messagesForLLM.push({
+          role: "user",
+          content: finalUserContent,
+        } as any);
+
+        try {
+          await currentLLM.chat({
+            messages: messagesForLLM,
+            config: { ...currentConfig.modelConfig, stream: true },
+            onUpdate: (content) => {
+              currentStore.updateCurrentSession((s) => {
+                const msg = s.messages.find((m) => m.id === botMsgId);
+                if (msg) {
+                  msg.content = content;
+                  msg.streaming = true;
+                }
+              });
+            },
+            onFinish: (content) => {
+              currentStore.updateCurrentSession((s) => {
+                const msg = s.messages.find((m) => m.id === botMsgId);
+                if (msg) {
+                  msg.content = content;
+                  msg.streaming = false;
+                }
+              });
+            },
+            onError: (err) => console.error("LLM Error", err),
+          });
+        } catch (e) {
+          console.error(e);
+        }
+
+        pendingSearchQuery.current = "";
+      },
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const onSubmit = (userInput: string) => {
     if (userInput.trim() === "") return;
+    if (isStreaming) return;
 
+    //System Commands
     const matchCommand = chatCommands.match(userInput);
     if (matchCommand.matched) {
       setUserInput("");
@@ -807,7 +922,8 @@ function _Chat() {
       return;
     }
 
-    if (isStreaming) return;
+    // Save the query so the useEffect listener knows what to answer
+    pendingSearchQuery.current = userInput;
 
     // My Agent uses MQTT (no WebLLM streaming here)
     if (attachImages.length > 0) {

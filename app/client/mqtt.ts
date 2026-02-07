@@ -260,15 +260,20 @@ export class FrontendMqttClient {
       // agents/<agentId>/memory/find/response/<requestId>
       const { agentId } = this.opts ?? { agentId: "" };
       const mMem = topic.match(
-        new RegExp(
-          `^agents\\/${agentId}\\/memory\\/find\\/response\\/([^/]+)$`,
-        ),
+        /^agents\/([^/]+)\/memory\/find\/response\/([^/]+)$/,
       );
+
       if (mMem) {
+        const topicAgentId = mMem[1]; // Capture which agent sent this
         try {
           const data = JSON.parse(text) as MemoryFindResponse;
+          (data as any).agentId = topicAgentId;
+
           this.handlers.onMemoryFind?.(data);
-        } catch {}
+          this.emit("onMemoryFind", data);
+        } catch (e) {
+          console.error("Error parsing memory response:", e);
+        }
         return;
       }
 
@@ -329,6 +334,7 @@ export class FrontendMqttClient {
         "rooms/+/history/response/+",
         "senders/history/response/+",
         `agents/${agentId}/memory/find/response/+`,
+        `agents/+/memory/find/response/+`,
       ],
       (err) => {
         if (err) {
@@ -485,6 +491,19 @@ export class FrontendMqttClient {
 
     this.safePublish(
       `agents/${agentId}/memory/find/request`,
+      JSON.stringify({ requestId, textQuery }),
+      { qos: 0, retain: false },
+    );
+
+    return requestId;
+  }
+
+  requestAgentMemoryFind(textQuery: string, targetAgentID: string) {
+    if (!this.opts) throw new Error("MQTT client not connected yet");
+    const requestId = `${targetAgentID}-${Date.now()}`;
+
+    this.safePublish(
+      `agents/${targetAgentID}/memory/find/request`,
       JSON.stringify({ requestId, textQuery }),
       { qos: 0, retain: false },
     );
