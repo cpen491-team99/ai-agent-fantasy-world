@@ -7,6 +7,9 @@ import { useAppDispatch, useAppSelector } from "./redux/hooks"; // adjust path
 import { setRooms, addMessage } from "./redux/chatroomsSlice"; // adjust path
 import { createMessage } from "./store/chat";
 import { getMqttClient } from "./client/mqtt";
+import { v4 as uuidv4 } from "uuid";
+
+const uuid = uuidv4();
 
 function MqttBootstrap() {
   const dispatch = useAppDispatch();
@@ -20,7 +23,7 @@ function MqttBootstrap() {
     // startedRef.current = true;
     const agentId = currentUserAgentId;
     const username = "test_user";
-    const clientId = "test_user_1";
+    const clientId = uuid;
     const port = process.env.NEXT_PUBLIC_MQTT_FRONTEND_PORT_NUMBER || "9001";
     const brokerUrl = `ws://127.0.0.1:${port}`;
 
