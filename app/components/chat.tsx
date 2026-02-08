@@ -810,6 +810,7 @@ function _Chat() {
     const unsubscribe = client.addHandlers({
       onMemoryFind: async (data) => {
         if (data.agentId && data.agentId !== TARGET_AGENT_ID) {
+          // Memory is for correct agent
           return;
         }
 
@@ -818,7 +819,7 @@ function _Chat() {
         }
 
         const validMemories = (data.results || []).filter(
-          (r: any) => r.score > 0.75,
+          (r: any) => r.score > 0.75, // Should standardize this with chatroom
         );
         let finalUserContent = "";
 
@@ -885,13 +886,19 @@ User: "${pendingSearchQuery.current}"`;
               });
             },
             onFinish: (content) => {
+              let botMsg: ChatMessage | undefined;
               currentStore.updateCurrentSession((s) => {
                 const msg = s.messages.find((m) => m.id === botMsgId);
                 if (msg) {
                   msg.content = content;
                   msg.streaming = false;
+                  botMsg = msg;
                 }
               });
+
+              if (botMsg) {
+                dispatch(addPrivateChatMessage(botMsg));
+              }
             },
             onError: (err) => console.error("LLM Error", err),
           });
