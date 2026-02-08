@@ -9,10 +9,18 @@ export type RoomState = {
   lastUpdate: number;
 };
 
+/** Private "My Agent" chat (chat.tsx) — not shown in sidebar; agent-agent rooms only. */
+export type PrivateChatState = {
+  messages: ChatMessage[];
+  lastUpdate: number;
+};
+
 export type ChatRoomsState = {
   rooms: RoomState[];
   currentRoomId: string | null;
   currentUserAgentId: string;
+  /** Private user–agent chat; separate from rooms so it doesn't appear in sidebar. */
+  privateChat: PrivateChatState;
 };
 
 function createAgentMessage(
@@ -113,10 +121,15 @@ function createMockRooms(currentUserAgentId: string): RoomState[] {
 
 const initialUserAgentId = "raccoon";
 
+/** Id for the private "My Agent" chat (chat.tsx). Used for currentRoomId only; not in rooms[]. */
+// Might want to change this to include the currentuserAgentID?
+export const PRIVATE_ROOM_ID = "private-room";
+
 const initialState: ChatRoomsState = {
   rooms: createMockRooms(initialUserAgentId),
   currentRoomId: "room_1",
   currentUserAgentId: initialUserAgentId,
+  privateChat: { messages: [], lastUpdate: 0 },
 };
 
 const chatroomsSlice = createSlice({
@@ -124,15 +137,19 @@ const chatroomsSlice = createSlice({
   initialState,
   reducers: {
     setRooms(state, action: PayloadAction<RoomState[]>) {
-      state.rooms = action.payload;
-      if (state.currentRoomId) {
-        const exists = state.rooms.some(
-          (room) => room.id === state.currentRoomId,
-        );
-        if (!exists) {
-          state.currentRoomId = state.rooms[0]?.id ?? null;
-        }
-      }
+      const incoming = action.payload;
+
+      const prevById = new Map(state.rooms.map((r) => [r.id, r]));
+
+      state.rooms = incoming.map((r) => {
+        const prev = prevById.get(r.id);
+
+        return {
+          ...prev, // keep messages, lastUpdate, etc.
+          ...r, // overwrite updated fields from backend (topic, members, etc.)
+          messages: prev?.messages ?? r.messages ?? [],
+        };
+      });
     },
     setCurrentRoomId(state, action: PayloadAction<string>) {
       state.currentRoomId = action.payload;
@@ -168,6 +185,14 @@ const chatroomsSlice = createSlice({
       room.messages = action.payload.messages;
       room.lastUpdate = Date.now();
     },
+    setPrivateChatMessages(state, action: PayloadAction<ChatMessage[]>) {
+      state.privateChat.messages = action.payload;
+      state.privateChat.lastUpdate = Date.now();
+    },
+    addPrivateChatMessage(state, action: PayloadAction<ChatMessage>) {
+      state.privateChat.messages.push(action.payload);
+      state.privateChat.lastUpdate = Date.now();
+    },
   },
 });
 
@@ -178,6 +203,8 @@ export const {
   setCurrentUserAgentId,
   addMessage,
   setRoomMessages,
+  setPrivateChatMessages,
+  addPrivateChatMessage,
 } = chatroomsSlice.actions;
 
 export default chatroomsSlice.reducer;

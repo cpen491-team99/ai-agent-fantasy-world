@@ -32,6 +32,7 @@ import BrainIcon from "../icons/brain.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
+import { getMqttClient } from "../client/mqtt";
 
 import {
   ChatMessage,
@@ -92,7 +93,13 @@ import Image from "next/image";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { ChatImage } from "../typing";
 import ModelSelect from "./model-select";
-import { getMqttClient } from "../client/mqtt";
+import { useAppDispatch } from "../redux/hooks";
+import {
+  setPrivateChatMessages,
+  addPrivateChatMessage,
+  setCurrentRoomId,
+  PRIVATE_ROOM_ID,
+} from "../redux/chatroomsSlice";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -106,6 +113,22 @@ export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
       </div>
     </div>
   );
+}
+
+function formatMessageTime(dateLike: string | number | Date | undefined) {
+  if (!dateLike) return "";
+
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return "";
+
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 export function SessionConfigModel(props: { onClose: () => void }) {
@@ -570,7 +593,7 @@ function _Chat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
   const pendingSearchQuery = useRef("");
-  const TARGET_AGENT_ID = "agentA";
+  const TARGET_AGENT_ID = "dog";
   const { submitKey, shouldSubmit } = useSubmitHandler();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrolledToBottom = scrollRef?.current
@@ -591,6 +614,119 @@ function _Chat() {
   const [showEditPromptModal, setShowEditPromptModal] = useState(false);
   const webllm = useContext(WebLLMContext)!;
   const mlcllm = useContext(MLCLLMContext)!;
+  const dispatch = useAppDispatch();
+
+  // --- My Agent (private chat via MQTT) ---
+  const MY_AGENT_ID = "user"; // must match your frontend agentId (same as Providers bootstrap)
+  const recentlySentRef = useRef<Array<{ content: string; ts: number }>>([]);
+
+  function toChatMessage(m: any): ChatMessage {
+    const text = String(m.text ?? "");
+    const dateObj = m.sentAt ? new Date(m.sentAt) : new Date();
+    const isFrontendUser = !!m.senderIsUser;
+    const senderId = String(m.senderId ?? "");
+
+    return createMessage({
+      id: m.id ? String(m.id) : undefined,
+      role: isFrontendUser ? "user" : "assistant",
+      content: text,
+      date: dateObj.toISOString(),
+      agentId: isFrontendUser ? undefined : senderId,
+      model: isFrontendUser ? undefined : senderId,
+      isUserAgent: isFrontendUser,
+    });
+  }
+
+  const chatStoreRef = useRef(chatStore);
+
+  useEffect(() => {
+    chatStoreRef.current = chatStore;
+  }, [chatStore]);
+
+  useEffect(() => {
+    const client = getMqttClient();
+
+    const unsubscribe = client.addHandlers({
+      onRoomHistory: (data) => {
+        if (data.roomId !== PRIVATE_ROOM_ID) return;
+        if (data.error) return;
+
+        const msgs = (data.messages ?? [])
+          .slice()
+          .sort((a, b) => {
+            const ta = new Date(a.sentAt ?? a.ts ?? a.date ?? 0).getTime();
+            const tb = new Date(b.sentAt ?? b.ts ?? b.date ?? 0).getTime();
+            return ta - tb;
+          })
+          .map(toChatMessage);
+
+        chatStoreRef.current.updateCurrentSession((s) => {
+          s.messages = [...msgs];
+        });
+        dispatch(setPrivateChatMessages(msgs));
+      },
+      onChatOut: (msg) => {
+        if (msg.roomId !== PRIVATE_ROOM_ID) return;
+
+        const senderIsMe = msg.fromAgentId === MY_AGENT_ID;
+
+        if (senderIsMe) {
+          const now = Date.now();
+          recentlySentRef.current = recentlySentRef.current.filter(
+            (x) => now - x.ts < 10_000,
+          );
+          const idx = recentlySentRef.current.findIndex(
+            (x) => x.content === msg.msg,
+          );
+          if (idx >= 0) {
+            recentlySentRef.current.splice(idx, 1);
+            return;
+          }
+        }
+
+        const newMsg = createMessage({
+          role: senderIsMe ? "user" : "assistant",
+          content: msg.msg,
+          date: new Date(msg.ts ?? Date.now()).toISOString(),
+          agentId: senderIsMe ? undefined : msg.fromAgentId,
+          model: senderIsMe ? undefined : msg.fromAgentId,
+          isUserAgent: senderIsMe,
+        });
+        chatStoreRef.current.updateCurrentSession((s) => {
+          s.messages.push(newMsg);
+        });
+        dispatch(addPrivateChatMessage(newMsg));
+      },
+    });
+
+    return () => {
+      unsubscribe(); // ✅ prevents “16 copies” forever
+    };
+  }, []);
+
+  // Reflect in Redux that we're on the private agent chat (currentRoomId; room not in sidebar list)
+  useEffect(() => {
+    dispatch(setCurrentRoomId(PRIVATE_ROOM_ID));
+  }, [dispatch]);
+
+  useEffect(() => {
+    const client = getMqttClient();
+
+    try {
+      client.joinRoom(PRIVATE_ROOM_ID);
+      client.requestRoomHistory(PRIVATE_ROOM_ID);
+    } catch (e) {
+      console.error("[MQTT] failed to join private-room", e);
+    }
+
+    return () => {
+      // best-effort leave
+      try {
+        client.leaveRoom();
+      } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const llm =
     config.modelClientType === ModelClient.MLCLLM_API ? mlcllm : webllm;
@@ -662,7 +798,6 @@ function _Chat() {
     }
   };
 
-  const chatStoreRef = useRef(chatStore);
   chatStoreRef.current = chatStore;
   const llmRef = useRef(llm);
   llmRef.current = llm;
@@ -672,17 +807,15 @@ function _Chat() {
   useEffect(() => {
     const client = getMqttClient();
 
-    if (client.mqttClient) {
-      const topic = "agents/+/memory/find/response/+";
-      client.mqttClient.subscribe(topic, (err) => {
-        if (!err) console.log(`[Chat] Subscribed to ${topic}`);
-      });
-    }
-
     const unsubscribe = client.addHandlers({
       onMemoryFind: async (data) => {
-        if (data.agentId && data.agentId !== TARGET_AGENT_ID) return;
-        if (!pendingSearchQuery.current) return;
+        if (data.agentId && data.agentId !== TARGET_AGENT_ID) {
+          return;
+        }
+
+        if (!pendingSearchQuery.current) {
+          return;
+        }
 
         const validMemories = (data.results || []).filter(
           (r: any) => r.score > 0.75,
@@ -777,7 +910,6 @@ User: "${pendingSearchQuery.current}"`;
     if (userInput.trim() === "") return;
     if (isStreaming) return;
 
-    //System Commands
     const matchCommand = chatCommands.match(userInput);
     if (matchCommand.matched) {
       setUserInput("");
@@ -786,29 +918,37 @@ User: "${pendingSearchQuery.current}"`;
       return;
     }
 
-    // Save the query so the useEffect listener knows what to answer
     pendingSearchQuery.current = userInput;
+    recentlySentRef.current.push({ content: userInput, ts: Date.now() });
 
-    // Manually add the user's message to the UI
-    chatStore.updateCurrentSession((s) => {
-      s.messages.push(
-        createMessage({
-          role: "user",
-          content: userInput,
-          date: new Date().toISOString(),
-        }),
-      );
+    const now = Date.now();
+    const userMsg = createMessage({
+      role: "user",
+      content: userInput,
+      date: new Date(now).toISOString(),
+      isUserAgent: true,
     });
 
-    // Send the request to backend
+    chatStore.updateCurrentSession((s) => {
+      s.messages.push(userMsg);
+    });
+
+    dispatch(addPrivateChatMessage(userMsg));
+
     try {
+      getMqttClient().sendRoomMessage(PRIVATE_ROOM_ID, userInput);
+    } catch (e) {
+      console.error("[MQTT] failed to send", e);
+    }
+
+    try {
+      console.log(`[Chat] Requesting memories for agent: ${TARGET_AGENT_ID}`);
       getMqttClient().requestAgentMemoryFind(userInput, TARGET_AGENT_ID);
     } catch (e) {
       console.error("MQTT Error", e);
       showToast("Error: Backend not connected");
     }
 
-    // Cleanup (Clear input box, etc.)
     setAttachImages([]);
     localStorage.setItem(LAST_INPUT_KEY, userInput);
     setUserInput("");
@@ -1409,7 +1549,7 @@ User: "${pendingSearchQuery.current}"`;
                     <div>
                       {isContext
                         ? Locale.Chat.IsContext
-                        : message.date.toLocaleString()}
+                        : formatMessageTime(message.date)}
                     </div>
                   </div>
                 </div>
@@ -1527,4 +1667,5 @@ export function Chat() {
   const chatStore = useChatStore();
   const sessionIndex = chatStore.currentSessionIndex;
   return <_Chat key={sessionIndex}></_Chat>;
+  // return <PrivateChat />;
 }

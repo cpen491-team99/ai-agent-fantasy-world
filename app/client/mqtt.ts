@@ -60,6 +60,7 @@ export type MemoryFindResponse = {
   textQuery?: string;
   results?: any[];
   error?: string;
+  agentId?: string;
 };
 
 type BufferedMessage = {
@@ -333,6 +334,7 @@ export class FrontendMqttClient {
         "rooms/+/chat/out",
         "rooms/+/history/response/+",
         "senders/history/response/+",
+        `agents/${agentId}/memory/find/response/+`,
         `agents/+/memory/find/response/+`,
       ],
       (err) => {

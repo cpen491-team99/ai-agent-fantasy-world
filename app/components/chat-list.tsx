@@ -16,6 +16,13 @@ import { Path } from "../constant";
 import { TemplateAvatar } from "./template";
 import { useRef, useEffect } from "react";
 
+const ROOM_PRESENTATION: Record<string, { title: string; roomLogo: string }> = {
+  library: { title: "Library", roomLogo: "1f680" },
+  cafe: { title: "Cafe", roomLogo: "1f4a1" },
+  park: { title: "Park", roomLogo: "1f3de-fe0f" },
+  "sports-court": { title: "Sports Court", roomLogo: "26bd" },
+};
+
 export function ChatItem(props: {
   onClick?: () => void;
   title: string;
@@ -129,23 +136,55 @@ export function ChatList(props: { narrow?: boolean }) {
             ref={provided.innerRef}
             {...provided.droppableProps}
           >
-            {rooms.map((item, i) => (
-              <ChatItem
-                title={item.topic}
-                time={new Date(item.lastUpdate).toLocaleString()}
-                count={item.messages.length}
-                key={item.id}
-                id={item.id}
-                index={i}
-                selected={i === selectedIndex}
-                onClick={() => {
-                  navigate(Path.Chat);
-                  dispatch(setCurrentRoomId(item.id));
-                }}
-                narrow={props.narrow}
-                roomLogo={item.roomLogo}
-              />
-            ))}
+            {rooms.map(
+              (item, i) => {
+                const meta = ROOM_PRESENTATION[item.id];
+                const title =
+                  meta?.title ??
+                  (item.topic
+                    ? item.topic.toUpperCase()
+                    : item.id.toUpperCase());
+
+                // IMPORTANT: choose a safe fallback avatar key that TemplateAvatar definitely supports.
+                // If you're not sure, temporarily hardcode one that you know works from the old app (e.g. "chat").
+                const roomLogo = meta?.roomLogo ?? item.roomLogo ?? "chat";
+
+                return (
+                  <ChatItem
+                    title={title}
+                    time={new Date(item.lastUpdate).toLocaleString()}
+                    count={item.messages.length ?? 0}
+                    key={item.id}
+                    id={item.id}
+                    index={i}
+                    selected={i === selectedIndex}
+                    onClick={() => {
+                      navigate(Path.Chat);
+                      dispatch(setCurrentRoomId(item.id));
+                    }}
+                    narrow={props.narrow}
+                    roomLogo={roomLogo}
+                  />
+                );
+              },
+              //   (
+              //   <ChatItem
+              //     title={item.topic}
+              //     time={new Date(item.lastUpdate).toLocaleString()}
+              //     count={item.messages.length ?? 0}
+              //     key={item.id}
+              //     id={item.id}
+              //     index={i}
+              //     selected={i === selectedIndex}
+              //     onClick={() => {
+              //       navigate(Path.Chat);
+              //       dispatch(setCurrentRoomId(item.id));
+              //     }}
+              //     narrow={props.narrow}
+              //     roomLogo={item.roomLogo}
+              //   />
+              // )
+            )}
             {provided.placeholder}
           </div>
         )}
