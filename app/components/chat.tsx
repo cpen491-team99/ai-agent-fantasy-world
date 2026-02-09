@@ -616,15 +616,27 @@ function _Chat() {
   const mlcllm = useContext(MLCLLMContext)!;
   const dispatch = useAppDispatch();
 
-  // --- My Agent (private chat via MQTT) ---
-  const MY_AGENT_ID = "user"; // must match your frontend agentId (same as Providers bootstrap)
+  const MY_AGENT_ID = "user";
   const recentlySentRef = useRef<Array<{ content: string; ts: number }>>([]);
 
   function toChatMessage(m: any): ChatMessage {
-    const text = String(m.text ?? "");
-    const dateObj = m.sentAt ? new Date(m.sentAt) : new Date();
-    const isFrontendUser = !!m.senderIsUser;
-    const senderId = String(m.senderId ?? "");
+    let text = String(m.text ?? m.msg ?? "");
+
+    let senderId = String(m.senderId ?? m.fromAgentId ?? m.agentId ?? "");
+
+    let isFrontendUser =
+      !!m.senderIsUser || senderId.toLowerCase() === MY_AGENT_ID.toLowerCase();
+
+    const spoofMatch = text.match(/^<<<ACTING_AS:([^>]+)>>>(.*)/s);
+    if (spoofMatch) {
+      senderId = spoofMatch[1];
+      text = spoofMatch[2];
+      isFrontendUser = false;
+    }
+
+    const dateObj = m.sentAt
+      ? new Date(m.sentAt)
+      : new Date(m.ts ?? Date.now());
 
     return createMessage({
       id: m.id ? String(m.id) : undefined,
@@ -668,30 +680,30 @@ function _Chat() {
       onChatOut: (msg) => {
         if (msg.roomId !== PRIVATE_ROOM_ID) return;
 
-        const senderIsMe = msg.fromAgentId === MY_AGENT_ID;
+        let content = msg.msg;
+        const spoofMatch = content.match(/^<<<ACTING_AS:([^>]+)>>>(.*)/s);
 
-        if (senderIsMe) {
+        if (spoofMatch) {
+          content = spoofMatch[2];
+        }
+
+        if (msg.fromAgentId === MY_AGENT_ID) {
           const now = Date.now();
           recentlySentRef.current = recentlySentRef.current.filter(
-            (x) => now - x.ts < 10_000,
+            (x) => now - x.ts < 10000,
           );
+
           const idx = recentlySentRef.current.findIndex(
-            (x) => x.content === msg.msg,
+            (x) => x.content === content,
           );
+
           if (idx >= 0) {
             recentlySentRef.current.splice(idx, 1);
             return;
           }
         }
+        const newMsg = toChatMessage(msg);
 
-        const newMsg = createMessage({
-          role: senderIsMe ? "user" : "assistant",
-          content: msg.msg,
-          date: new Date(msg.ts ?? Date.now()).toISOString(),
-          agentId: senderIsMe ? undefined : msg.fromAgentId,
-          model: senderIsMe ? undefined : msg.fromAgentId,
-          isUserAgent: senderIsMe,
-        });
         chatStoreRef.current.updateCurrentSession((s) => {
           s.messages.push(newMsg);
         });
@@ -700,7 +712,7 @@ function _Chat() {
     });
 
     return () => {
-      unsubscribe(); // ✅ prevents “16 copies” forever
+      unsubscribe();
     };
   }, []);
 
@@ -849,7 +861,7 @@ User: "${pendingSearchQuery.current}"`;
               id: botMsgId,
               role: "assistant",
               content: "...",
-              model: currentConfig.modelConfig.model,
+              model: TARGET_AGENT_ID,
               date: new Date().toISOString(),
             }),
           );
@@ -896,6 +908,20 @@ User: "${pendingSearchQuery.current}"`;
                 }
               });
 
+              recentlySentRef.current.push({
+                content: content,
+                ts: Date.now(),
+              });
+              const spoofedContent = `<<<ACTING_AS:${TARGET_AGENT_ID}>>>${content}`;
+
+              try {
+                getMqttClient().sendRoomMessage(
+                  PRIVATE_ROOM_ID,
+                  spoofedContent,
+                );
+              } catch (e) {
+                console.error("[MQTT] failed to save AI response", e);
+              }
               if (botMsg) {
                 dispatch(addPrivateChatMessage(botMsg));
               }
