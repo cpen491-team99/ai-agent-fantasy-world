@@ -1,6 +1,6 @@
 <div align="center">
 
-# The Town
+# Honeyveil
 
 **An AI Fantasy World Built by Agents**
 
