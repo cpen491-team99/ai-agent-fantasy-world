@@ -1474,13 +1474,22 @@ User: "${pendingSearchQuery.current}"`;
                       )}
                       {message.role === "assistant" && (
                         <div className={styles["chat-message-role-name"]}>
-                          {models.find((m) => m.name === message.model)
-                            ? models.find((m) => m.name === message.model)!
-                                .display_name
-                            : message.model}
+                          {
+                            currentUserAgentName
+                            /* Hardcoded to just be currentUserAgentName, which should be right,
+                         but isnt right now since privateDB is mixed with messages from diff agents. */
+                          }
                         </div>
                       )}
-                      {showActions && (
+                      {message.role === "user" && (
+                        <div
+                          className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
+                        >
+                          {""}{" "}
+                          {/* Left Blank for now since ik jiashu was working on ui stuff relating to this */}
+                        </div>
+                      )}
+                      {showActions && message.role === "assistant" && (
                         <div className={styles["chat-message-actions"]}>
                           <div className={styles["chat-input-actions"]}>
                             {message.streaming ? (
