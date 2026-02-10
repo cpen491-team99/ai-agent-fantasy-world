@@ -93,13 +93,14 @@ import Image from "next/image";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { ChatImage } from "../typing";
 import ModelSelect from "./model-select";
-import { useAppDispatch } from "../redux/hooks";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   setPrivateChatMessages,
   addPrivateChatMessage,
   setCurrentRoomId,
   PRIVATE_ROOM_ID,
 } from "../redux/chatroomsSlice";
+import { current } from "@reduxjs/toolkit";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -593,7 +594,12 @@ function _Chat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
   const pendingSearchQuery = useRef("");
-  const TARGET_AGENT_ID = "dog";
+  const currentUserAgentId = useAppSelector(
+    (state) => state.chatrooms.currentUserAgentId,
+  );
+  const currentUserAgentName =
+    currentUserAgentId.substring(0, 1).toUpperCase() +
+    currentUserAgentId.substring(1).toLowerCase();
   const { submitKey, shouldSubmit } = useSubmitHandler();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrolledToBottom = scrollRef?.current
@@ -616,7 +622,7 @@ function _Chat() {
   const mlcllm = useContext(MLCLLMContext)!;
   const dispatch = useAppDispatch();
 
-  const MY_AGENT_ID = "user";
+  const userId = "user"; // Placeholder until we have users
   const recentlySentRef = useRef<Array<{ content: string; ts: number }>>([]);
 
   function toChatMessage(m: any): ChatMessage {
@@ -625,7 +631,7 @@ function _Chat() {
     let senderId = String(m.senderId ?? m.fromAgentId ?? m.agentId ?? "");
 
     let isFrontendUser =
-      !!m.senderIsUser || senderId.toLowerCase() === MY_AGENT_ID.toLowerCase();
+      !!m.senderIsUser || senderId.toLowerCase() === userId.toLowerCase();
 
     const spoofMatch = text.match(/^<<<ACTING_AS:([^>]+)>>>(.*)/s);
     if (spoofMatch) {
@@ -687,7 +693,7 @@ function _Chat() {
           content = spoofMatch[2];
         }
 
-        if (msg.fromAgentId === MY_AGENT_ID) {
+        if (msg.fromAgentId === userId) {
           const now = Date.now();
           recentlySentRef.current = recentlySentRef.current.filter(
             (x) => now - x.ts < 10000,
@@ -821,7 +827,7 @@ function _Chat() {
 
     const unsubscribe = client.addHandlers({
       onMemoryFind: async (data) => {
-        if (data.agentId && data.agentId !== TARGET_AGENT_ID) {
+        if (data.agentId && data.agentId !== currentUserAgentId) {
           // Memory is for correct agent
           return;
         }
@@ -861,7 +867,7 @@ User: "${pendingSearchQuery.current}"`;
               id: botMsgId,
               role: "assistant",
               content: "...",
-              model: TARGET_AGENT_ID,
+              model: currentUserAgentId,
               date: new Date().toISOString(),
             }),
           );
@@ -912,7 +918,7 @@ User: "${pendingSearchQuery.current}"`;
                 content: content,
                 ts: Date.now(),
               });
-              const spoofedContent = `<<<ACTING_AS:${TARGET_AGENT_ID}>>>${content}`;
+              const spoofedContent = `<<<ACTING_AS:${currentUserAgentId}>>>${content}`;
 
               try {
                 getMqttClient().sendRoomMessage(
@@ -922,9 +928,9 @@ User: "${pendingSearchQuery.current}"`;
               } catch (e) {
                 console.error("[MQTT] failed to save AI response", e);
               }
-              if (botMsg) {
+              /* if (botMsg) {
                 dispatch(addPrivateChatMessage(botMsg));
-              }
+              } */
             },
             onError: (err) => console.error("LLM Error", err),
           });
@@ -975,8 +981,10 @@ User: "${pendingSearchQuery.current}"`;
     }
 
     try {
-      console.log(`[Chat] Requesting memories for agent: ${TARGET_AGENT_ID}`);
-      getMqttClient().requestAgentMemoryFind(userInput, TARGET_AGENT_ID);
+      console.log(
+        `[Chat] Requesting memories for agent: ${currentUserAgentId}`,
+      );
+      getMqttClient().requestAgentMemoryFind(userInput, currentUserAgentId);
     } catch (e) {
       console.error("MQTT Error", e);
       showToast("Error: Backend not connected");
@@ -1357,11 +1365,9 @@ User: "${pendingSearchQuery.current}"`;
             className={`window-header-main-title ${styles["chat-body-main-title"]}`}
             onClickCapture={() => setShowEditPromptModal(false)} // If we want edit conversation at all, keep this, else set to false and change styling to remove underline
           >
-            {!session.topic ? DEFAULT_TOPIC : session.topic}
+            {"Chat with Your Agent"}
           </div>
-          <div className="window-header-sub-title">
-            {Locale.Chat.SubTitle(session.messages.length)}
-          </div>
+          <div className="window-header-sub-title">{currentUserAgentName}</div>
         </div>
         <div className="window-actions">
           <div className="window-action-button">
