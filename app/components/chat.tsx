@@ -622,7 +622,7 @@ function _Chat() {
   const mlcllm = useContext(MLCLLMContext)!;
   const dispatch = useAppDispatch();
 
-  const userId = "user"; // Placeholder until we have users
+  const userId = currentUserAgentId; // Placeholder until we have users
   const recentlySentRef = useRef<Array<{ content: string; ts: number }>>([]);
 
   function toChatMessage(m: any): ChatMessage {

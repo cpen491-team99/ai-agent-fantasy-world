@@ -362,39 +362,56 @@
   }
 }
 
+.chat-message-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  object-fit: cover;
+  display: block;
+}
+
 .chat-message-user {
   display: flex;
   flex-direction: row-reverse;
-
-  .chat-message-header {
-    flex-direction: row-reverse;
-  }
 }
 
 .chat-message-user-agent {
-  .chat-message-header {
-    justify-content: flex-end;
-    gap: 8px;
-  }
+  display: flex;
+  flex-direction: row-reverse;
 
-  .chat-message-avatar {
-    order: 2;
-    margin-left: 0px;
-    margin-right: 0;
-  }
+  .chat-message-container {
+    /* Force the container items to align to the right */
+    align-items: flex-end; 
+    
+    .chat-message-header {
+      flex-direction: row; 
+      justify-content: flex-end;
+      gap: 8px;
+      /* Ensure the header doesn't collapse */
+      width: auto; 
+      min-width: 100px; 
+    }
 
-  .chat-message-role-name-container {
-    order: 1;
-    text-align: right;
-    display: flex;
-    justify-content: flex-end;
-    min-width: 0;
+    .chat-message-role-name-container {
+      /* Reset the relative positioning from the base class */
+      position: static !important; 
+      order: 1;
+      display: flex;
+      align-items: center;
 
-    .chat-message-role-name {
-      position: static;
-      transform: none;
-      right: 0;
-      left: auto;
+      .chat-message-role-name {
+        /* Force the name out of absolute positioning so it takes up space */
+        position: static !important; 
+        transform: none !important;
+        opacity: 1 !important; /* Prevents it from disappearing on hover if that's undesired */
+        text-align: right;
+        margin-right: 4px; 
+      }
+    }
+
+    .chat-message-avatar {
+      order: 2;
+      position: static !important;
     }
   }
 }
@@ -457,6 +474,7 @@
     }
   }
 }
+
 
 .chat-message-user > .chat-message-container {
   align-items: flex-end;

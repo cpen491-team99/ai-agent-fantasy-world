@@ -33,6 +33,9 @@ import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
 
+// Styles
+import { getAgentAvatar } from "../utils/agent-avatar";
+
 import {
   SubmitKey,
   useChatStore,
@@ -95,6 +98,7 @@ import { useAppDispatch } from "../redux/hooks";
 import { addMessage, setRoomMessages } from "../redux/chatroomsSlice";
 import { getMqttClient } from "../client/mqtt";
 import { createMessage, type ChatMessage } from "../store/chat";
+import { useChatroomStore, shouldAgentRespond } from "../store/chatroom-store";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -454,7 +458,9 @@ function useScrollToBottom(
   // for auto-scroll
 
   const [autoScroll, setAutoScroll] = useState(true);
-  function scrollDomToBottom() {
+
+  // Memoize scrollDomToBottom to prevent it from causing effect re-runs
+  const scrollDomToBottom = useCallback(() => {
     const dom = scrollRef.current;
     if (dom) {
       requestAnimationFrame(() => {
@@ -462,14 +468,14 @@ function useScrollToBottom(
         dom.scrollTo(0, dom.scrollHeight);
       });
     }
-  }
+  }, [scrollRef]);
 
-  // auto scroll
+  // auto scroll - only run when autoScroll state changes, not on every render
   useEffect(() => {
     if (autoScroll && !detach) {
       scrollDomToBottom();
     }
-  });
+  }, [autoScroll, detach, scrollDomToBottom]);
 
   return {
     scrollRef,
@@ -1515,7 +1521,23 @@ function RoomChat() {
   const [hitBottom, setHitBottom] = useState(true);
   const [showExport, setShowExport] = useState(false);
 
-  const messages: ChatMessage[] = room?.messages ?? [];
+  // Agent inference store
+  const chatroomStore = useChatroomStore();
+  const { isGenerating: isAgentGenerating, currentStreamingMessage } =
+    chatroomStore;
+
+  // Get LLM context for agent inference
+  const webllm = useContext(WebLLMContext)!;
+  const llm = webllm;
+
+  const messages: ChatMessage[] = useMemo(() => {
+    const roomMessages = room?.messages ?? [];
+    // Include streaming message if agent is generating
+    if (currentStreamingMessage && isAgentGenerating) {
+      return [...roomMessages, currentStreamingMessage];
+    }
+    return roomMessages;
+  }, [room?.messages, currentStreamingMessage, isAgentGenerating]);
   const models = config.models;
 
   function toChatMessage(m: any): ChatMessage {
@@ -1526,21 +1548,33 @@ function RoomChat() {
     // But senderId can be "user" and senderIsUser=false (treated like an agent).
     const isFrontendUser = !!m.senderIsUser;
 
+    // Right-render check: if fetched message.agentid = currentuseragentID
     const senderId = String(m.senderId ?? "");
+    const backendAgentId = String(m.agentId ?? senderId);
+
+    // Treat messages from the current agent as "user‑aligned" (right side)
+    const isCurrentAgent =
+      !isFrontendUser &&
+      (backendAgentId === currentUserAgentId ||
+        senderId === currentUserAgentId);
 
     return createMessage({
       id: m.id ? String(m.id) : undefined,
       role: isFrontendUser ? "user" : "assistant",
       content: text, // createMessage will normalize
       date: dateObj.toISOString(),
-      agentId: isFrontendUser ? undefined : senderId,
+      agentId: isCurrentAgent ? currentUserAgentId : backendAgentId,
       model: isFrontendUser ? undefined : senderId,
-      isUserAgent: isFrontendUser, // aligns user messages on right
+      isUserAgent: isFrontendUser || isCurrentAgent, // aligns user messages on right
     });
   }
 
+  // Refs to access latest values without triggering re-subscription
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+
   useEffect(() => {
-    getMqttClient().setHandlers({
+    const unsubscribe = getMqttClient().addHandlers({
       onRoomHistory: (data) => {
         if (data.error) {
           console.warn("[MQTT] room history error:", data.error);
@@ -1557,8 +1591,60 @@ function RoomChat() {
         dispatch(setRoomMessages({ roomId: data.roomId, messages: msgs }));
         console.log("[MQTT] room history loaded", data.roomId, msgs.length);
       },
+      // onChatOut: (data) => {
+      //   // Add incoming message to Redux
+      //   const incomingMessage = toChatMessage({
+      //     id: `${data.roomId}-${data.ts ?? Date.now()}`,
+      //     text: data.msg,
+      //     senderId: data.fromAgentId,
+      //     senderIsUser: false,
+      //     sentAt: data.ts ? new Date(data.ts).toISOString() : new Date().toISOString(),
+      //   });
+
+      //   // Only add if not from self (to avoid duplicates)
+      //   if (data.fromAgentId !== currentUserAgentId) {
+      //     dispatch(addMessage({ roomId: data.roomId, message: incomingMessage }));
+
+      //     // Check if agent should respond
+      //     if (shouldAgentRespond()) {
+      //       // Get updated messages including the new one
+      //       const updatedMessages = [...messagesRef.current, incomingMessage];
+      //       useChatroomStore.getState().onAgentRespond(
+      //         llm,
+      //         data.roomId,
+      //         updatedMessages,
+      //         incomingMessage,
+      //       );
+      //     }
+      //   }
+      // },
     });
-  }, [dispatch]);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [dispatch, currentUserAgentId, llm]);
+
+  // Set up agent config when user agent changes and sync with MQTT
+  useEffect(() => {
+    if (currentUserAgentId) {
+      // Sync agent config in chatroom store
+      useChatroomStore.getState().setAgentConfig({
+        agentId: currentUserAgentId,
+        agentName:
+          currentUserAgentId.charAt(0).toUpperCase() +
+          currentUserAgentId.slice(1),
+        systemPrompt: `You are ${currentUserAgentId}, an AI agent in a fantasy world chatroom. Respond naturally and conversationally to other agents. Keep responses concise. Your response should be in the format of pure text with nothing else. Do not include the name of the agent in your response.`,
+      });
+
+      // Sync MQTT client's agent ID with Redux state
+      getMqttClient().setAgentId(
+        currentUserAgentId,
+        currentUserAgentId.charAt(0).toUpperCase() +
+          currentUserAgentId.slice(1),
+      );
+    }
+  }, [currentUserAgentId]);
 
   useEffect(() => {
     if (!room?.id) return;
@@ -1575,9 +1661,16 @@ function RoomChat() {
     };
   }, [room?.id]);
 
+  // Track previous message count to only scroll on new messages
+  const prevMessageCountRef = useRef(messages.length);
+
   useEffect(() => {
-    scrollDomToBottom();
-  }, [messages.length, scrollDomToBottom]);
+    // Only scroll to bottom if new messages were added AND user was at the bottom
+    if (messages.length > prevMessageCountRef.current && hitBottom) {
+      scrollDomToBottom();
+    }
+    prevMessageCountRef.current = messages.length;
+  }, [messages.length, hitBottom, scrollDomToBottom]);
 
   const onChatBodyScroll = (dom: HTMLDivElement) => {
     const atBottom =
@@ -1651,6 +1744,42 @@ function RoomChat() {
               }}
             />
           </div>
+          <div className="window-action-button">
+            <IconButton
+              icon={<RobotIcon />}
+              bordered
+              title={
+                chatroomStore.autoRespondEnabled
+                  ? "Disable Auto-Respond"
+                  : "Enable Auto-Respond"
+              }
+              onClick={() => {
+                const newEnabled = !chatroomStore.autoRespondEnabled;
+                useChatroomStore.getState().setAutoRespond(newEnabled);
+
+                // If enabling, trigger immediate response to last message
+                if (newEnabled && room && messages.length > 0) {
+                  // Find last message not from current agent
+                  const lastOtherMessage = [...messages]
+                    .reverse()
+                    .find((m) => m.agentId !== currentUserAgentId);
+
+                  if (lastOtherMessage) {
+                    console.log(
+                      "[Auto-Respond] Triggering response to:",
+                      lastOtherMessage,
+                    );
+                    useChatroomStore
+                      .getState()
+                      .onAgentRespond(llm, room.id, messages, lastOtherMessage);
+                  }
+                }
+              }}
+              className={
+                chatroomStore.autoRespondEnabled ? styles["selected"] : ""
+              }
+            />
+          </div>
           {showMaxIcon && (
             <div className="window-action-button">
               <IconButton
@@ -1681,6 +1810,54 @@ function RoomChat() {
           const showTyping = message.streaming;
           const shouldShowAvatar = !isUserAligned || isUserAgentMessage;
 
+          const avatarImageSrc =
+            message.agentId && shouldShowAvatar
+              ? getAgentAvatar(message.agentId)
+              : undefined;
+
+          const avatar = (
+            <div className={styles["chat-message-avatar"]}>
+              {shouldShowAvatar && (
+                <>
+                  {message.role === "system" ? (
+                    <Avatar avatar="2699-fe0f" />
+                  ) : avatarImageSrc ? (
+                    <img
+                      src={avatarImageSrc}
+                      alt={message.agentId ?? "agent"}
+                      className={styles["chat-message-avatar-img"]}
+                    />
+                  ) : (
+                    <TemplateAvatar
+                      avatar={room.roomLogo}
+                      model={message.model || config.modelConfig.model}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          );
+
+          const roleName = (
+            <div className={styles["chat-message-role-name-container"]}>
+              {message.role === "system" && (
+                <div
+                  className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
+                >
+                  {Locale.Chat.Roles.System}
+                </div>
+              )}
+              {message.role === "assistant" && (
+                <div className={styles["chat-message-role-name"]}>
+                  {models.find((m) => m.name === message.model)
+                    ? models.find((m) => m.name === message.model)!.display_name
+                    : message.model}
+                  {isUserAgentMessage ? " (You)" : ""}
+                </div>
+              )}
+            </div>
+          );
+
           return (
             <Fragment key={`${i}/${message.id}`}>
               <div
@@ -1696,38 +1873,17 @@ function RoomChat() {
               >
                 <div className={styles["chat-message-container"]}>
                   <div className={styles["chat-message-header"]}>
-                    <div className={styles["chat-message-avatar"]}>
-                      {shouldShowAvatar && (
-                        <>
-                          {message.role === "system" ? (
-                            <Avatar avatar="2699-fe0f" />
-                          ) : (
-                            <TemplateAvatar
-                              avatar={room.roomLogo}
-                              model={message.model || config.modelConfig.model}
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <div className={styles["chat-message-role-name-container"]}>
-                      {message.role === "system" && (
-                        <div
-                          className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
-                        >
-                          {Locale.Chat.Roles.System}
-                        </div>
-                      )}
-                      {message.role === "assistant" && (
-                        <div className={styles["chat-message-role-name"]}>
-                          {models.find((m) => m.name === message.model)
-                            ? models.find((m) => m.name === message.model)!
-                                .display_name
-                            : message.model}
-                          {isUserAgentMessage ? " (You)" : ""}
-                        </div>
-                      )}
-                    </div>
+                    {isUserAgentMessage ? (
+                      <>
+                        {roleName}
+                        {avatar}
+                      </>
+                    ) : (
+                      <>
+                        {avatar}
+                        {roleName}
+                      </>
+                    )}
                   </div>
                   {showTyping && (
                     <div className={styles["chat-message-status"]}>
@@ -1768,7 +1924,7 @@ function RoomChat() {
       </div>
 
       {/* room message input for testing message update in agents room, should be delete later*/}
-      <div className={styles["chat-input-panel"]}>
+      {/* <div className={styles["chat-input-panel"]}>
         <div className={styles["chat-input-panel-inner"]}>
           <textarea
             className={styles["chat-input"]}
@@ -1793,7 +1949,7 @@ function RoomChat() {
             onClick={sendToRoom}
           />
         </div>
-      </div>
+      </div> */}
 
       {showExport && (
         <ExportMessageModal onClose={() => setShowExport(false)} />
