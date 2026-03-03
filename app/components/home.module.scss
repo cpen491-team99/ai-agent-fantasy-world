@@ -180,8 +180,8 @@
 }
 
 .chat-item {
-  padding: 10px 14px;
-  background-color: var(--white);
+  padding: 14px 16px;
+  //background-color: var(--white);
   border-radius: 10px;
   margin-bottom: 10px;
   box-shadow: var(--card-shadow);
@@ -191,6 +191,18 @@
   border: 2px solid transparent;
   position: relative;
   content-visibility: auto;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 1) 33%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    var(--room-bg);
+  background-size: 100% 100%, cover;
+  background-position: left, center;
+  background-repeat: no-repeat;
+  background-clip: padding-box;
 }
 
 .chat-item:hover {
@@ -202,10 +214,10 @@
 }
 
 .chat-item-title {
-  font-size: 14px;
-  font-weight: bolder;
+  font-size: 18px;
+  font-weight: 700;
   display: block;
-  width: calc(100% - 15px);
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -214,17 +226,11 @@
 
 .chat-item-header {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
 }
 
 .chat-item-avatar {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 24px;
+  display: none;
 }
 
 .chat-item-delete {
