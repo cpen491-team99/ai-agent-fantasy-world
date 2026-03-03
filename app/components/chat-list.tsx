@@ -16,11 +16,25 @@ import { Path } from "../constant";
 import { TemplateAvatar } from "./template";
 import { useRef, useEffect } from "react";
 
+//Rooms Bg
+import LibraryBg from "../assets/rooms/library.jpg";
+import CafeBg from "../assets/rooms/cafe.jpg";
+import ParkBg from "../assets/rooms/park.jpg";
+import SportsBg from "../assets/rooms/sports-court.jpg";
+
 const ROOM_PRESENTATION: Record<string, { title: string; roomLogo: string }> = {
   library: { title: "Library", roomLogo: "1f680" },
   cafe: { title: "Cafe", roomLogo: "1f4a1" },
   park: { title: "Park", roomLogo: "1f3de-fe0f" },
   "sports-court": { title: "Sports Court", roomLogo: "26bd" },
+};
+
+// Place the actual image files under /public/rooms/<id>.jpg or adjust paths.
+const ROOM_BACKGROUNDS: Record<string, string> = {
+  library: LibraryBg.src,
+  cafe: CafeBg.src,
+  park: ParkBg.src,
+  "sports-court": SportsBg.src,
 };
 
 export function ChatItem(props: {
@@ -33,6 +47,7 @@ export function ChatItem(props: {
   index: number;
   narrow?: boolean;
   roomLogo: string;
+  backgroundUrl?: string;
 }) {
   const config = useAppConfig();
   const draggableRef = useRef<HTMLDivElement | null>(null);
@@ -47,57 +62,56 @@ export function ChatItem(props: {
   const { pathname: currentPath } = useLocation();
   return (
     <Draggable draggableId={`${props.id}`} index={props.index}>
-      {(provided) => (
-        <div
-          className={`${styles["chat-item"]} ${
-            props.selected &&
-            (currentPath === Path.Chat || currentPath === Path.Home) &&
-            styles["chat-item-selected"]
-          }`}
-          onClick={props.onClick}
-          ref={(ele) => {
-            draggableRef.current = ele;
-            provided.innerRef(ele);
-          }}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          title={`${props.title}\n${Locale.ChatItem.ChatItemCount(
-            props.count,
-          )}`}
-        >
-          {props.narrow ? (
-            <div className={styles["chat-item-narrow"]}>
-              <div className={styles["chat-item-avatar"] + " no-dark"}>
-                <TemplateAvatar
-                  avatar={props.roomLogo}
-                  model={config.modelConfig.model}
-                />
-              </div>
-              <div className={styles["chat-item-narrow-count"]}>
-                {props.count}
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className={styles["chat-item-header"]}>
-                <div className={styles["chat-item-avatar"] + " no-dark"}>
-                  <TemplateAvatar
-                    avatar={props.roomLogo}
-                    model={config.modelConfig.model}
-                  />
+      {(provided) => {
+        const draggableStyle = provided.draggableProps.style;
+        const mergedStyle = props.backgroundUrl
+          ? ({
+              ...draggableStyle,
+              ["--room-bg" as any]: `url(${props.backgroundUrl})`,
+            } as React.CSSProperties)
+          : draggableStyle;
+
+        return (
+          <div
+            className={`${styles["chat-item"]} ${
+              props.selected &&
+              (currentPath === Path.Chat || currentPath === Path.Home) &&
+              styles["chat-item-selected"]
+            }`}
+            onClick={props.onClick}
+            ref={(ele) => {
+              draggableRef.current = ele;
+              provided.innerRef(ele);
+            }}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            style={mergedStyle}
+            title={`${props.title}\n${Locale.ChatItem.ChatItemCount(
+              props.count,
+            )}`}
+          >
+            {props.narrow ? (
+              <div className={styles["chat-item-narrow"]}>
+                <div className={styles["chat-item-narrow-count"]}>
+                  {props.count}
                 </div>
-                <div className={styles["chat-item-title"]}>{props.title}</div>
               </div>
-              <div className={styles["chat-item-info"]}>
-                {/* <div className={styles["chat-item-count"]}>
+            ) : (
+              <>
+                <div className={styles["chat-item-header"]}>
+                  <div className={styles["chat-item-title"]}>{props.title}</div>
+                </div>
+                <div className={styles["chat-item-info"]}>
+                  {/* <div className={styles["chat-item-count"]}>
                   {Locale.ChatItem.ChatItemCount(props.count)}
                 </div> */}
-                {/* <div className={styles["chat-item-date"]}>{props.time}</div> */}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                  {/* <div className={styles["chat-item-date"]}>{props.time}</div> */}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      }}
     </Draggable>
   );
 }
@@ -149,6 +163,8 @@ export function ChatList(props: { narrow?: boolean }) {
                 // If you're not sure, temporarily hardcode one that you know works from the old app (e.g. "chat").
                 const roomLogo = meta?.roomLogo ?? item.roomLogo ?? "chat";
 
+                const backgroundUrl = ROOM_BACKGROUNDS[item.id];
+
                 return (
                   <ChatItem
                     title={title}
@@ -164,6 +180,7 @@ export function ChatList(props: { narrow?: boolean }) {
                     }}
                     narrow={props.narrow}
                     roomLogo={roomLogo}
+                    backgroundUrl={backgroundUrl}
                   />
                 );
               },
