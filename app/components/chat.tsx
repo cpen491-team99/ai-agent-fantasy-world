@@ -856,6 +856,10 @@ User: "${pendingSearchQuery.current}"`;
           finalUserContent = pendingSearchQuery.current;
         }
 
+        finalUserContent = `[SYSTEM: You are a Sly Raccoon that lives in a whimsical village with several other animals of unique personalities.
+        You personally are a bit sneaky, and like to embellish the truth. Currently, you are talking to a user that will ask you question about your life.
+        Respond accordingly.] ${finalUserContent}`; // Specifically for raccoon
+
         const currentStore = chatStoreRef.current;
         const currentLLM = llmRef.current;
         const currentConfig = configRef.current;
@@ -866,7 +870,8 @@ User: "${pendingSearchQuery.current}"`;
             createMessage({
               id: botMsgId,
               role: "assistant",
-              content: "...",
+              content: "",
+              streaming: true,
               model: currentUserAgentId,
               date: new Date().toISOString(),
             }),
@@ -895,6 +900,7 @@ User: "${pendingSearchQuery.current}"`;
             messages: messagesForLLM,
             config: { ...currentConfig.modelConfig, stream: true },
             onUpdate: (content) => {
+              console.log("On Update", content);
               currentStore.updateCurrentSession((s) => {
                 const msg = s.messages.find((m) => m.id === botMsgId);
                 if (msg) {
@@ -904,6 +910,7 @@ User: "${pendingSearchQuery.current}"`;
               });
             },
             onFinish: (content) => {
+              console.log("On Finish", content);
               let botMsg: ChatMessage | undefined;
               currentStore.updateCurrentSession((s) => {
                 const msg = s.messages.find((m) => m.id === botMsgId);

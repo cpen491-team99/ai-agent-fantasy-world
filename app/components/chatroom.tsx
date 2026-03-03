@@ -1685,275 +1685,285 @@ function RoomChat() {
   const showMaxIcon = !isMobileScreen;
 
   return (
-    <div className={styles.chat} key={room.id}>
-      <div className="window-header">
-        {isMobileScreen && (
-          <div className="window-actions">
-            <div className={"window-action-button"}>
-              <IconButton
-                icon={<ReturnIcon />}
-                bordered
-                title={Locale.Chat.Actions.ChatList}
-                onClick={() => navigate(Path.Home)}
-              />
+    <div className="chatroom">
+      <div className={styles.chat} key={room.id}>
+        <div className="window-header">
+          {isMobileScreen && (
+            <div className="window-actions">
+              <div className={"window-action-button"}>
+                <IconButton
+                  icon={<ReturnIcon />}
+                  bordered
+                  title={Locale.Chat.Actions.ChatList}
+                  onClick={() => navigate(Path.Home)}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className={`window-header-title ${styles["chat-body-title"]}`}>
+            <div
+              className={`window-header-main-title ${styles["chat-body-main-title"]}`}
+            >
+              {!room.topic ? DEFAULT_TOPIC : room.topic}
+            </div>
+            <div className="window-header-sub-title">
+              {Locale.Chat.SubTitle(room.messages.length)}
             </div>
           </div>
-        )}
-
-        <div className={`window-header-title ${styles["chat-body-title"]}`}>
-          <div
-            className={`window-header-main-title ${styles["chat-body-main-title"]}`}
-          >
-            {!room.topic ? DEFAULT_TOPIC : room.topic}
-          </div>
-          <div className="window-header-sub-title">
-            {Locale.Chat.SubTitle(room.messages.length)}
-          </div>
-        </div>
-        <div className="window-actions">
-          <div className="window-action-button">
-            <IconButton
-              icon={<ShareIcon />}
-              bordered
-              title={Locale.Chat.Actions.Share}
-              onClick={() => {
-                const params = new URLSearchParams({
-                  model: config.modelConfig.model,
-                  temperature: config.modelConfig.temperature.toString(),
-                  top_p: config.modelConfig.top_p.toString(),
-                  max_tokens: config.modelConfig.max_tokens.toString(),
-                  presence_penalty:
-                    config.modelConfig.presence_penalty.toString(),
-                  frequency_penalty:
-                    config.modelConfig.frequency_penalty.toString(),
-                });
-                const shareUrl = new URL(
-                  `${window.location.origin}${window.location.pathname}?${params}`,
-                );
-                copyToClipboard(shareUrl.href);
-              }}
-            />
-          </div>
-          <div className="window-action-button">
-            <IconButton
-              icon={<ExportIcon />}
-              bordered
-              title={Locale.Chat.Actions.Export}
-              onClick={() => {
-                setShowExport(true);
-              }}
-            />
-          </div>
-          <div className="window-action-button">
-            <IconButton
-              icon={<RobotIcon />}
-              bordered
-              title={
-                chatroomStore.autoRespondEnabled
-                  ? "Disable Auto-Respond"
-                  : "Enable Auto-Respond"
-              }
-              onClick={() => {
-                const newEnabled = !chatroomStore.autoRespondEnabled;
-                useChatroomStore.getState().setAutoRespond(newEnabled);
-
-                // If enabling, trigger immediate response to last message
-                if (newEnabled && room && messages.length > 0) {
-                  // Find last message not from current agent
-                  const lastOtherMessage = [...messages]
-                    .reverse()
-                    .find((m) => m.agentId !== currentUserAgentId);
-
-                  if (lastOtherMessage) {
-                    console.log(
-                      "[Auto-Respond] Triggering response to:",
-                      lastOtherMessage,
-                    );
-                    useChatroomStore
-                      .getState()
-                      .onAgentRespond(llm, room.id, messages, lastOtherMessage);
-                  }
-                }
-              }}
-              className={
-                chatroomStore.autoRespondEnabled ? styles["selected"] : ""
-              }
-            />
-          </div>
-          {showMaxIcon && (
+          <div className="window-actions">
             <div className="window-action-button">
               <IconButton
-                icon={config.tightBorder ? <MinIcon /> : <MaxIcon />}
+                icon={<ShareIcon />}
                 bordered
+                title={Locale.Chat.Actions.Share}
                 onClick={() => {
-                  config.update(
-                    (config) => (config.tightBorder = !config.tightBorder),
+                  const params = new URLSearchParams({
+                    model: config.modelConfig.model,
+                    temperature: config.modelConfig.temperature.toString(),
+                    top_p: config.modelConfig.top_p.toString(),
+                    max_tokens: config.modelConfig.max_tokens.toString(),
+                    presence_penalty:
+                      config.modelConfig.presence_penalty.toString(),
+                    frequency_penalty:
+                      config.modelConfig.frequency_penalty.toString(),
+                  });
+                  const shareUrl = new URL(
+                    `${window.location.origin}${window.location.pathname}?${params}`,
                   );
+                  copyToClipboard(shareUrl.href);
                 }}
               />
             </div>
-          )}
-        </div>
-      </div>
-
-      <div
-        className={styles["chat-body"]}
-        ref={scrollRef}
-        onScroll={(e) => onChatBodyScroll(e.currentTarget)}
-      >
-        {messages.map((message, i) => {
-          const isUser = message.role === "user";
-          const isUserAgentMessage =
-            message.isUserAgent ||
-            (!!message.agentId && message.agentId === currentUserAgentId);
-          const isUserAligned = isUser || isUserAgentMessage;
-          const showTyping = message.streaming;
-          const shouldShowAvatar = !isUserAligned || isUserAgentMessage;
-
-          const avatarImageSrc =
-            message.agentId && shouldShowAvatar
-              ? getAgentAvatar(message.agentId)
-              : undefined;
-
-          const avatar = (
-            <div className={styles["chat-message-avatar"]}>
-              {shouldShowAvatar && (
-                <>
-                  {message.role === "system" ? (
-                    <Avatar avatar="2699-fe0f" />
-                  ) : avatarImageSrc ? (
-                    <img
-                      src={avatarImageSrc}
-                      alt={message.agentId ?? "agent"}
-                      className={styles["chat-message-avatar-img"]}
-                    />
-                  ) : (
-                    <TemplateAvatar
-                      avatar={room.roomLogo}
-                      model={message.model || config.modelConfig.model}
-                    />
-                  )}
-                </>
-              )}
+            <div className="window-action-button">
+              <IconButton
+                icon={<ExportIcon />}
+                bordered
+                title={Locale.Chat.Actions.Export}
+                onClick={() => {
+                  setShowExport(true);
+                }}
+              />
             </div>
-          );
-
-          const roleName = (
-            <div className={styles["chat-message-role-name-container"]}>
-              {message.role === "system" && (
-                <div
-                  className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
-                >
-                  {Locale.Chat.Roles.System}
-                </div>
-              )}
-              {message.role === "assistant" && (
-                <div className={styles["chat-message-role-name"]}>
-                  {models.find((m) => m.name === message.model)
-                    ? models.find((m) => m.name === message.model)!.display_name
-                    : message.model}
-                  {isUserAgentMessage ? " (You)" : ""}
-                </div>
-              )}
-            </div>
-          );
-
-          return (
-            <Fragment key={`${i}/${message.id}`}>
-              <div
-                className={
-                  isUserAligned
-                    ? `${styles["chat-message-user"]} ${
-                        isUserAgentMessage
-                          ? styles["chat-message-user-agent"]
-                          : ""
-                      }`
-                    : styles["chat-message"]
+            <div className="window-action-button">
+              <IconButton
+                icon={<RobotIcon />}
+                bordered
+                title={
+                  chatroomStore.autoRespondEnabled
+                    ? "Disable Auto-Respond"
+                    : "Enable Auto-Respond"
                 }
-              >
-                <div className={styles["chat-message-container"]}>
-                  <div className={styles["chat-message-header"]}>
-                    {isUserAgentMessage ? (
-                      <>
-                        {roleName}
-                        {avatar}
-                      </>
+                onClick={() => {
+                  const newEnabled = !chatroomStore.autoRespondEnabled;
+                  useChatroomStore.getState().setAutoRespond(newEnabled);
+
+                  // If enabling, trigger immediate response to last message
+                  if (newEnabled && room && messages.length > 0) {
+                    // Find last message not from current agent
+                    const lastOtherMessage = [...messages]
+                      .reverse()
+                      .find((m) => m.agentId !== currentUserAgentId);
+
+                    if (lastOtherMessage) {
+                      console.log(
+                        "[Auto-Respond] Triggering response to:",
+                        lastOtherMessage,
+                      );
+                      useChatroomStore
+                        .getState()
+                        .onAgentRespond(
+                          llm,
+                          room.id,
+                          messages,
+                          lastOtherMessage,
+                        );
+                    }
+                  }
+                }}
+                className={
+                  chatroomStore.autoRespondEnabled ? styles["selected"] : ""
+                }
+              />
+            </div>
+            {showMaxIcon && (
+              <div className="window-action-button">
+                <IconButton
+                  icon={config.tightBorder ? <MinIcon /> : <MaxIcon />}
+                  bordered
+                  onClick={() => {
+                    config.update(
+                      (config) => (config.tightBorder = !config.tightBorder),
+                    );
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div
+          className={styles["chat-body"]}
+          ref={scrollRef}
+          onScroll={(e) => onChatBodyScroll(e.currentTarget)}
+        >
+          {messages.map((message, i) => {
+            const isUser = message.role === "user";
+            const isUserAgentMessage =
+              message.isUserAgent ||
+              (!!message.agentId && message.agentId === currentUserAgentId);
+            const isUserAligned = isUser || isUserAgentMessage;
+            const showTyping = message.streaming;
+            const shouldShowAvatar = !isUserAligned || isUserAgentMessage;
+
+            const avatarImageSrc =
+              message.agentId && shouldShowAvatar
+                ? getAgentAvatar(message.agentId)
+                : undefined;
+
+            const avatar = (
+              <div className={styles["chat-message-avatar"]}>
+                {shouldShowAvatar && (
+                  <>
+                    {message.role === "system" ? (
+                      <Avatar avatar="2699-fe0f" />
+                    ) : avatarImageSrc ? (
+                      <img
+                        src={avatarImageSrc}
+                        alt={message.agentId ?? "agent"}
+                        className={styles["chat-message-avatar-img"]}
+                      />
                     ) : (
-                      <>
-                        {avatar}
-                        {roleName}
-                      </>
+                      <TemplateAvatar
+                        avatar={room.roomLogo}
+                        model={message.model || config.modelConfig.model}
+                      />
                     )}
+                  </>
+                )}
+              </div>
+            );
+
+            const roleName = (
+              <div className={styles["chat-message-role-name-container"]}>
+                {message.role === "system" && (
+                  <div
+                    className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
+                  >
+                    {Locale.Chat.Roles.System}
                   </div>
-                  {showTyping && (
-                    <div className={styles["chat-message-status"]}>
-                      {Locale.Chat.Typing}
+                )}
+                {message.role === "assistant" && (
+                  <div
+                    className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
+                  >
+                    {models.find((m) => m.name === message.model)
+                      ? models.find((m) => m.name === message.model)!
+                          .display_name
+                      : message.model}
+                    {isUserAgentMessage ? " (You)" : ""}
+                  </div>
+                )}
+              </div>
+            );
+
+            return (
+              <Fragment key={`${i}/${message.id}`}>
+                <div
+                  className={
+                    isUserAligned
+                      ? `${styles["chat-message-user"]} ${
+                          isUserAgentMessage
+                            ? styles["chat-message-user-agent"]
+                            : ""
+                        }`
+                      : styles["chat-message"]
+                  }
+                >
+                  <div className={styles["chat-message-container"]}>
+                    <div className={styles["chat-message-header"]}>
+                      {isUserAgentMessage ? (
+                        <>
+                          {roleName}
+                          {avatar}
+                        </>
+                      ) : (
+                        <>
+                          {avatar}
+                          {roleName}
+                        </>
+                      )}
                     </div>
-                  )}
-                  <div className={styles["chat-message-item"]}>
-                    <Markdown
-                      content={getMessageTextContent(message)}
-                      loading={
-                        message.streaming &&
-                        message.content.length === 0 &&
-                        !isUserAligned
-                      }
-                      fontSize={fontSize}
-                      parentRef={scrollRef}
-                      defaultShow={i >= messages.length - 6}
-                    />
-                  </div>
-                  <div className={styles["chat-message-action-date"]}>
-                    <div>
-                      {new Date(message.date).toLocaleString("en-US", {
-                        year: "numeric",
-                        month: "numeric",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        second: "2-digit",
-                        hour12: true,
-                      })}
+                    {showTyping && (
+                      <div className={styles["chat-message-status"]}>
+                        {Locale.Chat.Typing}
+                      </div>
+                    )}
+                    <div className={styles["chat-message-item"]}>
+                      <Markdown
+                        content={getMessageTextContent(message)}
+                        loading={
+                          message.streaming &&
+                          message.content.length === 0 &&
+                          !isUserAligned
+                        }
+                        fontSize={fontSize}
+                        parentRef={scrollRef}
+                        defaultShow={i >= messages.length - 6}
+                      />
+                    </div>
+                    <div className={styles["chat-message-action-date"]}>
+                      <div>
+                        {new Date(message.date).toLocaleString("en-US", {
+                          year: "numeric",
+                          month: "numeric",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          second: "2-digit",
+                          hour12: true,
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </Fragment>
-          );
-        })}
-      </div>
-
-      {/* room message input for testing message update in agents room, should be delete later*/}
-      {/* <div className={styles["chat-input-panel"]}>
-        <div className={styles["chat-input-panel-inner"]}>
-          <textarea
-            className={styles["chat-input"]}
-            placeholder="Type a room message..."
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={2}
-            style={{ fontSize }}
-            onKeyDown={(e) => {
-              // Enter = send, Shift+Enter = newline
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendToRoom();
-              }
-            }}
-          />
-          <IconButton
-            icon={<SendWhiteIcon />}
-            text="Send"
-            className={styles["chat-input-send"]}
-            type="primary"
-            onClick={sendToRoom}
-          />
+              </Fragment>
+            );
+          })}
         </div>
-      </div> */}
 
-      {showExport && (
-        <ExportMessageModal onClose={() => setShowExport(false)} />
-      )}
+        {/* room message input for testing message update in agents room, should be delete later*/}
+        {/* <div className={styles["chat-input-panel"]}>
+          <div className={styles["chat-input-panel-inner"]}>
+            <textarea
+              className={styles["chat-input"]}
+              placeholder="Type a room message..."
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={2}
+              style={{ fontSize }}
+              onKeyDown={(e) => {
+                // Enter = send, Shift+Enter = newline
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendToRoom();
+                }
+              }}
+            />
+            <IconButton
+              icon={<SendWhiteIcon />}
+              text="Send"
+              className={styles["chat-input-send"]}
+              type="primary"
+              onClick={sendToRoom}
+            />
+          </div>
+        </div> */}
+
+        {showExport && (
+          <ExportMessageModal onClose={() => setShowExport(false)} />
+        )}
+      </div>
     </div>
   );
 }
