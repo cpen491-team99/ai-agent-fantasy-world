@@ -60,6 +60,7 @@ export type MemoryFindResponse = {
   textQuery?: string;
   results?: any[];
   error?: string;
+  // backend also includes: agentId, ts — safe to ignore
 };
 
 type BufferedMessage = {
@@ -253,6 +254,7 @@ export class FrontendMqttClient {
         try {
           const data = JSON.parse(text) as SenderHistoryResponse;
           this.handlers.onSenderHistory?.(data);
+          this.emit("onSenderHistory", data);
         } catch {}
         return;
       }
@@ -267,7 +269,17 @@ export class FrontendMqttClient {
       if (mMem) {
         try {
           const data = JSON.parse(text) as MemoryFindResponse;
+
+          console.log("[MQTT] memory find response topic matched", {
+            optsAgentId: agentId, // the one used to build the regex
+            topic,
+            requestIdFromTopic: mMem[1],
+            requestIdInPayload: data?.requestId,
+            resultCount: Array.isArray(data?.results) ? data.results.length : 0,
+          });
+
           this.handlers.onMemoryFind?.(data);
+          this.emit("onMemoryFind", data); // ✅ critical for addHandlers()
         } catch {}
         return;
       }
@@ -520,6 +532,13 @@ export class FrontendMqttClient {
     if (!this.opts) throw new Error("MQTT client not connected yet");
     const { agentId } = this.opts;
     const requestId = `${agentId}-${Date.now()}`;
+
+    console.log("[MQTT] requestMemoryFind()", {
+      usingAgentId: agentId,
+      requestId,
+      textQuery,
+      topic: `agents/${agentId}/memory/find/request`,
+    });
 
     this.safePublish(
       `agents/${agentId}/memory/find/request`,
