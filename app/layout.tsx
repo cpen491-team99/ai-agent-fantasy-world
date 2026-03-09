@@ -64,14 +64,15 @@ export const metadata: Metadata = {
   },
 };
 
+/* FIX: Added Google Font domains to style-src and font-src */
 const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
     worker-src 'self' blob:;
     connect-src 'self' blob: data: https: http: ws: wss:;
-    style-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' blob: data: https:;
-    font-src 'self';
+    font-src 'self' https://fonts.gstatic.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
@@ -97,6 +98,19 @@ export default function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
+
+        {/* FIX: Added the actual Font Link here */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=VT323&display=swap"
+          rel="stylesheet"
+        />
+
         <link
           rel="apple-touch-icon"
           sizes="180x180"

@@ -1,55 +1,52 @@
 @import "./animation.scss";
 @import "./window.scss";
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+$pixel-font: 'VT323', 'Courier New', monospace;
 
 @mixin light {
   --theme: light;
 
-  /* color */
-  --white: white;
-  --black: rgb(48, 48, 48);
-  --gray: rgb(240, 240, 240);
-  --light-gray: rgb(120, 120, 120);
-  --primary: rgb(90, 96, 135);
-  --second: rgb(228, 229, 241);
-  --hover-color: #f3f3f3;
-  --bar-color: rgba(0, 0, 0, 0.1);
+  --white: #f5d6a7; 
+  --black: #361304; 
+  --gray: #c88954; 
+  --light-gray: #8a4b24;
+  --primary: #9e5021; 
+  --second: #e6c08c; 
+  --hover-color: #ffdca3;
+  --bar-color: #52210b; 
   --theme-color: var(--gray);
-  --mlc-icon-color: rgb(6, 37, 120);
+  --mlc-icon-color: #361304;
 
-  /* shadow */
-  --shadow: 50px 50px 100px 10px rgb(0, 0, 0, 0.1);
-  --card-shadow: 0px 2px 4px 0px rgb(0, 0, 0, 0.05);
+  --shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
+  --card-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
 
-  /* stroke */
-  --border-in-light: 1px solid rgb(222, 222, 222);
-  --border-in-dark: 1px solid rgb(136, 136, 136);
+  --border-in-light: 4px solid #52210b; 
+  --border-in-dark: 4px solid #52210b;
 }
 
 @mixin dark {
   --theme: dark;
+  
+  --white: #ebc692; 
+  --black: #240c00; 
+  --gray: #6b3e1b; 
+  --light-gray: #542d13;
+  --primary: #8a4115; 
+  --second: #d6af7a; 
+  --hover-color: #fce8c5;
+  --bar-color: #381505;
+  --mlc-icon-color: #240c00;
 
-  /* color */
-  --white: rgb(30, 30, 30);
-  --black: rgb(187, 187, 187);
-  --gray: rgb(21, 21, 21);
-  --light-gray: rgb(120, 120, 120);
-  --primary: rgb(60, 72, 144);
-  --second: rgb(36, 40, 52);
-  --hover-color: #323232;
-  --mlc-icon-color: #ffffff;
-
-  --bar-color: rgba(255, 255, 255, 0.1);
-
-  --border-in-light: 1px solid rgba(255, 255, 255, 0.192);
-  --border-in-dark: 1px solid rgb(255, 255, 255, 0.56);
+  --border-in-light: 4px solid #381505;
+  --border-in-dark: 4px solid #381505;
 
   --theme-color: var(--gray);
 
   div:not(.no-dark)>svg {
-    filter: invert(0.5);
+    filter: invert(0.1); 
   }
 }
-
 
 .light {
   @include light;
@@ -94,11 +91,26 @@
   }
 }
 
+* {
+  font-family: 'VT323', 'Courier New', monospace !important;
+  font-weight: 400 !important; /* Pixel fonts typically only support normal weight */
+  
+  /* SHARP PIXEL FIX: Disables browser blurring/smoothing */
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: never;
+  text-rendering: optimizeSpeed;
+
+  /* SHARP IMAGE FIX: Ensures icons stay blocky and crisp */
+  image-rendering: pixelated; 
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
 html {
   height: var(--full-height);
-
-  font-family: "Noto Sans", "SF Pro SC", "SF Pro Text", "SF Pro Icons",
-    "PingFang SC", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-size: 20px; 
+  background-color: var(--gray);
 }
 
 body {
@@ -125,31 +137,34 @@ body {
 }
 
 ::-webkit-scrollbar {
-  --bar-width: 5px;
+  --bar-width: 12px; 
   width: var(--bar-width);
   height: var(--bar-width);
 }
 
 ::-webkit-scrollbar-track {
-  background-color: transparent;
+  background-color: var(--second); 
+  border-left: var(--border-in-light);
 }
 
 ::-webkit-scrollbar-thumb {
   background-color: var(--bar-color);
-  border-radius: 20px;
-  background-clip: content-box;
-  border: 1px solid transparent;
+  border-radius: 0; 
+  border: 2px solid var(--second); 
 }
 
 select {
   border: var(--border-in-light);
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 0;
   appearance: none;
   cursor: pointer;
   background-color: var(--white);
   color: var(--black);
   text-align: center;
+  font-family: inherit;
+  font-size: 18px;
+  box-shadow: 2px 2px 0px var(--shadow);
 }
 
 label {
@@ -159,6 +174,7 @@ label {
 input {
   text-align: center;
   font-family: inherit;
+  font-size: 18px;
 }
 
 input[type="checkbox"] {
@@ -167,39 +183,40 @@ input[type="checkbox"] {
   color: var(--black);
   appearance: none;
   border: var(--border-in-light);
-  border-radius: 5px;
-  height: 16px;
-  width: 16px;
+  border-radius: 0;
+  height: 20px;
+  width: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);
 }
 
 input[type="checkbox"]:checked::after {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   background-color: var(--primary);
   content: " ";
-  border-radius: 2px;
+  border-radius: 0;
 }
 
 input[type="range"] {
   appearance: none;
   background-color: var(--white);
   color: var(--black);
+  border: 2px solid var(--black);
 }
 
 @mixin thumb() {
   appearance: none;
-  height: 8px;
-  width: 20px;
+  height: 16px;
+  width: 10px;
   background-color: var(--primary);
-  border-radius: 10px;
+  border-radius: 0; 
   cursor: pointer;
-  transition: all ease 0.3s;
-  margin-left: 5px;
-  border: none;
+  transition: all ease 0.1s;
+  border: 2px solid var(--black);
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -215,8 +232,8 @@ input[type="range"]::-ms-thumb {
 }
 
 @mixin thumbHover() {
-  transform: scaleY(1.2);
-  width: 24px;
+  transform: scale(1.1);
+  background-color: var(--hover-color);
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
@@ -235,7 +252,7 @@ input[type="number"],
 input[type="text"],
 input[type="password"] {
   appearance: none;
-  border-radius: 10px;
+  border-radius: 0; 
   border: var(--border-in-light);
   min-height: 36px;
   box-sizing: border-box;
@@ -244,6 +261,7 @@ input[type="password"] {
   padding: 0 10px;
   max-width: 50%;
   font-family: inherit;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);
 }
 
 div.math {
@@ -257,7 +275,7 @@ div.math {
   left: 0;
   height: var(--full-height);
   width: 100vw;
-  background-color: rgba($color: #000000, $alpha: 0.5);
+  background-color: rgba($color: #000000, $alpha: 0.6); 
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,22 +286,28 @@ div.math {
 }
 
 .link {
-  font-size: 12px;
+  font-size: 16px;
   color: var(--primary);
   text-decoration: none;
+  border-bottom: 2px dotted var(--primary); 
 
   &:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    color: var(--white);
+    background-color: var(--primary);
   }
 }
 
 pre {
   position: relative;
+  background-color: #2a1a0a !important; 
+  border: 4px solid var(--primary);
+  color: #fcebc4;
 
   &:hover .copy-code-button {
     pointer-events: all;
     transform: translateX(0px);
-    opacity: 0.5;
+    opacity: 1;
   }
 
   .copy-code-button {
@@ -291,22 +315,24 @@ pre {
     right: 10px;
     top: 1em;
     cursor: pointer;
-    padding: 0px 5px;
-    background-color: var(--black);
+    padding: 2px 8px;
+    font-family: $pixel-font;
+    background-color: var(--primary);
     color: var(--white);
-    border: var(--border-in-light);
-    border-radius: 10px;
+    border: 2px solid var(--white);
+    border-radius: 0;
     transform: translateX(10px);
     pointer-events: none;
     opacity: 0;
-    transition: all ease 0.3s;
+    transition: all ease 0.1s;
 
     &:after {
       content: "copy";
     }
 
     &:hover {
-      opacity: 1;
+      background-color: var(--white);
+      color: var(--primary);
     }
   }
 }
@@ -325,13 +351,13 @@ pre {
 
 .error {
   width: 80%;
-  border-radius: 20px;
-  border: var(--border-in-light);
-  box-shadow: var(--card-shadow);
+  border-radius: 0;
+  border: 4px solid #8b0000; 
+  box-shadow: 4px 4px 0px rgba(139, 0, 0, 0.4);
   padding: 20px;
   overflow: auto;
-  background-color: var(--white);
-  color: var(--black);
+  background-color: #ffcccc;
+  color: #8b0000;
 
   pre {
     overflow: auto;
@@ -352,37 +378,25 @@ pre {
   }
 }
 
-.bot-avatar {
-  height: 30px;
-  min-height: 30px;
-  width: 30px;
-  min-width: 30px;
+.bot-avatar, .user-avatar {
+  height: 36px;
+  min-height: 36px;
+  width: 36px;
+  min-width: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: var(--border-in-light);
-  box-shadow: var(--card-shadow);
-  border-radius: 11px;
+  box-shadow: 2px 2px 0px var(--shadow);
+  border-radius: 0; 
+  background-color: var(--white);
 
   svg {
-    height: 20px;
-    min-height: 20px;
-    width: 20px;
-    min-width: 20px;
+    height: 24px;
+    min-height: 24px;
+    width: 24px;
+    min-width: 24px;
   }
-}
-
-.user-avatar {
-  height: 30px;
-  min-height: 30px;
-  width: 30px;
-  min-width: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: var(--border-in-light);
-  box-shadow: var(--card-shadow);
-  border-radius: 11px;
 }
 
 .one-line {

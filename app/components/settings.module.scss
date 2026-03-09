@@ -1,3 +1,5 @@
+$pixel-font: 'VT323', 'Courier New', monospace;
+
 .settings {
   padding: 20px;
   overflow: auto;
@@ -7,6 +9,20 @@
   cursor: pointer;
   position: relative;
   z-index: 1;
+  border-radius: 0;
+  border: var(--border-in-light);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.25);
+  transition: transform 0.1s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
+  }
+
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px transparent;
+  }
 }
 
 .edit-prompt-modal {
@@ -17,9 +33,17 @@
     max-width: unset;
     margin-bottom: 20px;
     text-align: left;
+    font-family: $pixel-font;
+    font-size: 26px;
+    font-weight: bold;
+    color: var(--black);
   }
+  
   .edit-prompt-content {
     max-width: unset;
+    font-family: $pixel-font;
+    font-size: 20px;
+    color: var(--black);
   }
 }
 
@@ -30,43 +54,69 @@
     width: 100%;
     max-width: 100%;
     margin-bottom: 10px;
-    background-color: var(--gray);
+    background-color: var(--white);
+    border: var(--border-in-light);
+    border-radius: 0;
+    box-shadow: inset 4px 4px 0px rgba(0, 0, 0, 0.15), inset -4px -4px 0px rgba(255, 255, 255, 0.6);
+    font-family: $pixel-font;
+    font-size: 20px;
+    color: var(--black);
+    padding: 10px 14px;
+    outline: none;
+
+    &:focus {
+      background-color: #fff9ed;
+    }
   }
 
   .user-prompt-list {
     border: var(--border-in-light);
-    border-radius: 10px;
+    border-radius: 0;
+    background-color: var(--white);
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
 
     .user-prompt-item {
       display: flex;
       justify-content: space-between;
-      padding: 10px;
+      padding: 14px;
+      transition: background-color 0.2s;
 
       &:not(:last-child) {
         border-bottom: var(--border-in-light);
+      }
+
+      &:hover {
+        background-color: var(--second);
       }
 
       .user-prompt-header {
         max-width: calc(100% - 100px);
 
         .user-prompt-title {
-          font-size: 14px;
-          line-height: 2;
+          font-family: $pixel-font;
+          font-size: 22px;
+          line-height: 1.2;
           font-weight: bold;
+          color: var(--black);
+          margin-bottom: 6px;
         }
+        
         .user-prompt-content {
-          font-size: 12px;
+          font-family: $pixel-font;
+          font-size: 18px;
+          color: var(--black);
+          opacity: 0.8;
         }
       }
 
       .user-prompt-buttons {
         display: flex;
         align-items: center;
-        column-gap: 2px;
+        column-gap: 6px;
 
         .user-prompt-button {
-          //height: 100%;
-          padding: 7px;
+          padding: 8px 12px;
+          border-radius: 0;
         }
       }
     }

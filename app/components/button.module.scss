@@ -1,83 +1,73 @@
+$pixel-font: 'VT323', 'Courier New', monospace;
+
 .icon-button {
   background-color: var(--white);
-  border-radius: 10px;
-  display: flex;
+  border-radius: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
-
+  
+  padding: 6px 12px; 
+  
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.1s ease;
   overflow: hidden;
   user-select: none;
   outline: none;
-  border: none;
+  
+  white-space: nowrap; 
+  
+  border: var(--border-in-light);
   color: var(--black);
+  font-family: $pixel-font;
+  
+  font-size: 16px; 
+  font-weight: bold;
+  letter-spacing: 0.5px;
 
-  &[disabled] {
-    cursor: not-allowed;
-    opacity: 0.5;
+  box-shadow: 
+    inset 4px 4px 0px rgba(255, 255, 255, 0.6), 
+    inset -4px -4px 0px rgba(0, 0, 0, 0.15), 
+    4px 4px 0px rgba(0, 0, 0, 0.3);
+
+  &:hover {
+    background-color: var(--hover-color);
+    transform: translateY(-2px);
+    box-shadow: 
+      inset 4px 4px 0px rgba(255, 255, 255, 0.6), 
+      inset -4px -4px 0px rgba(0, 0, 0, 0.15), 
+      6px 6px 0px rgba(0, 0, 0, 0.3);
+  }
+
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: 
+      inset 4px 4px 0px rgba(0, 0, 0, 0.15), 
+      inset -4px -4px 0px rgba(255, 255, 255, 0.6), 
+      0px 0px 0px transparent;
+  }
+
+  .icon-button-icon {
+    width: 16px; 
+    height: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.8;
+  }
+
+  .icon-button-text {
+    margin-left: 6px;
+    line-height: 1;
+    margin-top: 2px; 
   }
 
   &.primary {
     background-color: var(--primary);
-    color: white;
-
-    path {
-      fill: white !important;
-    }
-  }
-
-  &.danger {
-    color: rgba($color: red, $alpha: 0.8);
-    border-color: rgba($color: red, $alpha: 0.5);
-    background-color: rgba($color: red, $alpha: 0.05);
-
+    color: var(--white);
+    
     &:hover {
-      border-color: red;
-      background-color: rgba($color: red, $alpha: 0.1);
+      filter: brightness(1.1);
     }
-
-    path {
-      fill: red !important;
-    }
-  }
-
-  &:hover,
-  &:focus {
-    border-color: var(--primary);
-  }
-}
-
-.shadow {
-  box-shadow: var(--card-shadow);
-}
-
-.border {
-  border: var(--border-in-light);
-}
-
-.icon-button-icon {
-  width: 16px;
-  height: 16px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-@media only screen and (max-width: 600px) {
-  .icon-button {
-    padding: 16px;
-  }
-}
-
-.icon-button-text {
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  &:not(:first-child) {
-    margin-left: 5px;
   }
 }
