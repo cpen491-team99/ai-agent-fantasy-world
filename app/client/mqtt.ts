@@ -15,6 +15,7 @@ import mqtt, { MqttClient } from "mqtt";
  *   rooms/+/history/response/+
  *   senders/history/response/+
  *   agents/<agentId>/memory/find/response/+
+ *   rooms/+/lock/response
  *
  * - publish:
  *   agents/<agentId>/status  (retained online/offline)
@@ -25,6 +26,8 @@ import mqtt, { MqttClient } from "mqtt";
  *   rooms/<roomId>/history/request
  *   senders/history/request
  *   agents/<agentId>/memory/find/request
+ *   rooms/<roomId>/lock/acquire
+ *   rooms/<roomId>/lock/release
  */
 
 export type SenderType = "agent" | "user";
@@ -63,6 +66,13 @@ export type MemoryFindResponse = {
   // backend also includes: agentId, ts — safe to ignore
 };
 
+export type LockResponse = {
+  roomId: string;
+  agentId: string;
+  status: "granted" | "denied";
+  ts: number;
+};
+
 type BufferedMessage = {
   topic: string;
   payload: string;
@@ -95,6 +105,7 @@ type Handlers = {
   onRoomHistory?: (data: RoomHistoryResponse) => void;
   onSenderHistory?: (data: SenderHistoryResponse) => void;
   onMemoryFind?: (data: MemoryFindResponse) => void;
+  onLockResponse?: (data: LockResponse) => void;
 
   onRoomsState?: (data: any) => void; // you can type this later
   onRoomMembers?: (roomId: string, data: any) => void; // you can type this later
@@ -284,6 +295,18 @@ export class FrontendMqttClient {
         return;
       }
 
+      // rooms/<roomId>/lock/response
+      const mLock = topic.match(/^rooms\/([^/]+)\/lock\/response$/);
+      if (mLock) {
+        try {
+          const data = JSON.parse(text) as LockResponse;
+          data.roomId = mLock[1];
+          this.handlers.onLockResponse?.(data);
+          this.emit("onLockResponse", data);
+        } catch {}
+        return;
+      }
+
       // rooms/state
       if (topic === "rooms/state") {
         try {
@@ -341,6 +364,7 @@ export class FrontendMqttClient {
         "rooms/+/history/response/+",
         "senders/history/response/+",
         `agents/${agentId}/memory/find/response/+`,
+        "rooms/+/lock/response",
       ],
       (err) => {
         if (err) {
@@ -547,6 +571,26 @@ export class FrontendMqttClient {
     );
 
     return requestId;
+  }
+
+  acquireLock(roomId: string) {
+    if (!this.opts) throw new Error("MQTT client not connected yet");
+    const { agentId } = this.opts;
+    this.safePublish(
+      `rooms/${roomId}/lock/acquire`,
+      JSON.stringify({ agentId, ts: Date.now() }),
+      { qos: 0, retain: false },
+    );
+  }
+
+  releaseLock(roomId: string) {
+    if (!this.opts) throw new Error("MQTT client not connected yet");
+    const { agentId } = this.opts;
+    this.safePublish(
+      `rooms/${roomId}/lock/release`,
+      JSON.stringify({ agentId, ts: Date.now() }),
+      { qos: 0, retain: false },
+    );
   }
 }
 

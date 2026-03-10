@@ -390,6 +390,9 @@ export const useChatroomStore = create<ChatroomState & ChatroomActions>(
               );
             }
 
+            // Release the lock!
+            getMqttClient().releaseLock(roomId);
+
             set({
               isGenerating: false,
               currentStreamingMessage: null,
@@ -397,6 +400,10 @@ export const useChatroomStore = create<ChatroomState & ChatroomActions>(
           },
           onError: (error: Error) => {
             log.error("[ChatroomStore] Inference error:", error);
+
+            // Release the lock on failure
+            getMqttClient().releaseLock(roomId);
+
             set({
               isGenerating: false,
               currentStreamingMessage: null,
@@ -424,27 +431,136 @@ export const useChatroomStore = create<ChatroomState & ChatroomActions>(
 );
 
 /**
- * Stub function to determine if agent should respond.
- * This will be replaced with actual lock acquisition logic in Phase 2.
- *
- * @returns true if agent should respond, false otherwise
+ * Helper to compute cosine similarity between two vectors
  */
-export function shouldAgentRespond(): boolean {
+export function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/**
+ * Mock utility for text -> vector. In a real environment, you'd use a
+ * local ONNX model (e.g. @xenova/transformers).
+ */
+function getMockEmbedding(text: string): number[] {
+  const vec = new Array(5).fill(0.1);
+  for (let i = 0; i < text.length; i++) {
+    vec[i % 5] += text.charCodeAt(i);
+  }
+  const mag = Math.sqrt(vec.reduce((sum, val) => sum + val * val, 0));
+  return vec.map((v) => v / mag);
+}
+
+/**
+ * Probabilistic Mutex Pattern for deciding if an agent should respond.
+ *
+ * 1. Self-Exclusion Check
+ * 2. Semantic Relevance Calculation (Cosine Similarity)
+ * 3. Probabilistic Lock Acquisition (Tunable Logistic Function)
+ * 4. MQTT Lock request
+ *
+ * @returns true if agent should respond and won the lock, false otherwise
+ */
+export async function attemptAgentResponse(
+  triggerMessage: ChatMessage,
+  roomId: string,
+): Promise<boolean> {
   const state = useChatroomStore.getState();
 
-  // Check if auto-respond is enabled (for testing)
+  // Check if auto-respond is enabled
   if (!state.autoRespondEnabled) {
     return false;
   }
 
   // Check if already generating
-  if (state.isGenerating) {
+  if (state.isGenerating || !state.agentConfig) {
     return false;
   }
 
-  // TODO: Phase 2 - Implement actual lock acquisition logic
-  // For now, use simple probability-based response
-  // This is a placeholder that will be replaced with MQTT lock mechanism
-  const probability = 0.3; // 30% chance to respond
-  return Math.random() < probability;
+  // 1. Self-Exclusion Check
+  if (triggerMessage.agentId === state.agentConfig.agentId) {
+    return false;
+  }
+
+  // 2. Semantic Relevance Calculation
+  // vMsg ・ vPersona / (||vMsg|| * ||vPersona||)
+  const vMsg = getMockEmbedding(getMessageTextContent(triggerMessage));
+  const vPersona = getMockEmbedding(state.agentConfig.systemPrompt);
+
+  // adding a bit of randomness to mock since getMockEmbedding isn't a real semantic space
+  // in production, use raw similarity
+  const baseSimilarity = cosineSimilarity(vMsg, vPersona);
+  const relevance = Math.max(
+    0,
+    Math.min(1, baseSimilarity * 0.5 + Math.random() * 0.5),
+  );
+
+  // 3. Probabilistic Lock Acquisition (Logistic Function)
+  const k = 10; // Steepness coefficient
+  const x0 = 0.5; // Relevance Threshold inflection point
+  const pAttempt = 1 / (1 + Math.exp(-k * (relevance - x0)));
+
+  // Generate random number
+  const r = Math.random();
+  console.log(
+    `[Inference Node] relevance=${relevance.toFixed(3)}, P(attempt)=${pAttempt.toFixed(3)}, roll=${r.toFixed(3)}`,
+  );
+
+  if (r > pAttempt) {
+    console.log(`[Inference Node] Agent remained silent (r > P).`);
+    return false; // Remain silent
+  }
+
+  console.log(
+    `[Inference Node] Attempting to acquire lock for room ${roomId}...`,
+  );
+
+  // 4. Concurrency Control (Acquire Lock via MQTT)
+  return new Promise((resolve) => {
+    const client = getMqttClient();
+    let resolved = false;
+
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        unsub();
+        console.warn(`[Inference Node] Lock request timed out`);
+        resolve(false);
+      }
+    }, 2000); // Wait 2s for backend response
+
+    const unsub = client.addHandlers({
+      onLockResponse: (data) => {
+        if (
+          data.roomId === roomId &&
+          data.agentId === state.agentConfig!.agentId
+        ) {
+          clearTimeout(timeout);
+          if (!resolved) {
+            resolved = true;
+            unsub();
+            if (data.status === "granted") {
+              console.log(`[Inference Node] Lock GRANTED for room ${roomId}`);
+              resolve(true);
+            } else {
+              console.log(
+                `[Inference Node] Lock DENIED for room ${roomId} (another agent claimed it)`,
+              );
+              resolve(false);
+            }
+          }
+        }
+      },
+    });
+
+    client.acquireLock(roomId);
+  });
 }
