@@ -9,8 +9,8 @@ export const agentAvatarMap: Record<string, string> = {
   raccoon: RaccoonAvatar.src,
   fox: FoxAvatar.src,
   bunny: BunnyAvatar.src,
-  cat: CatAvatar.src,
-  dog: DogAvatar.src,
+  eagle: CatAvatar.src,
+  mouse: DogAvatar.src,
 };
 
 export function getAgentAvatar(agentId: string): string {
