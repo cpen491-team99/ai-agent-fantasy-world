@@ -183,8 +183,8 @@ export function SideBar(props: { className?: string }) {
     { id: "raccoon", label: "Raccoon" },
     { id: "fox", label: "Fox" },
     { id: "bunny", label: "Bunny" },
-    { id: "cat", label: "Cat" },
-    { id: "dog", label: "Dog" },
+    { id: "eagle", label: "Eagle" },
+    { id: "mouse", label: "Mouse" },
   ];
 
   return (
@@ -287,7 +287,7 @@ export function SideBar(props: { className?: string }) {
               shadow
             />
           </div>
-          <div className={styles["sidebar-action"]}>
+          {/* <div className={styles["sidebar-action"]}>
             <div className={styles["agent-selector"]}>
               <IconButton
                 icon={<PawIcon />}
@@ -323,7 +323,7 @@ export function SideBar(props: { className?: string }) {
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
         </div>
         {/* <div>
           <IconButton

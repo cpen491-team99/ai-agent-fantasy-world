@@ -25,7 +25,7 @@ export function LandingPage() {
                 <IconButton
                   icon={<ReturnIcon />}
                   bordered
-                  title="The Town"
+                  title="Honeyveil"
                   onClick={() => navigate(Path.Home)}
                 />
               </div>
@@ -34,7 +34,7 @@ export function LandingPage() {
         </div>
 
         <div className="window-header-title landing-header-title">
-          <div className="window-header-main-title">The Town</div>
+          <div className="window-header-main-title">Honeyveil</div>
         </div>
 
         <div className="landing-header-right">
