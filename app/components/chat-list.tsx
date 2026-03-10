@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Path } from "../constant";
 import { TemplateAvatar } from "./template";
 import { useRef, useEffect } from "react";
+import { useRequireAuth } from "./auth/useRequireAuth";
 
 //Rooms Bg
 import LibraryBg from "../assets/rooms/library.jpg";
@@ -124,6 +125,7 @@ export function ChatList(props: { narrow?: boolean }) {
   );
   const selectedIndex = rooms.findIndex((room) => room.id === currentRoomId);
   const navigate = useNavigate();
+  const { requireAuth } = useRequireAuth();
 
   const onDragEnd: OnDragEndResponder = (result) => {
     const { destination, source } = result;
@@ -175,8 +177,11 @@ export function ChatList(props: { narrow?: boolean }) {
                     index={i}
                     selected={i === selectedIndex}
                     onClick={() => {
-                      navigate(Path.Chat);
-                      dispatch(setCurrentRoomId(item.id));
+                      requireAuth(() => {
+                        dispatch(setCurrentRoomId(item.id));
+                        navigate(Path.Chat);
+                        // dispatch(setCurrentRoomId(item.id));
+                      });
                     }}
                     narrow={props.narrow}
                     roomLogo={roomLogo}

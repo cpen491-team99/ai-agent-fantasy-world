@@ -12,8 +12,12 @@ import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
 import AutoIcon from "../icons/auto.svg";
 import PawIcon from "../icons/paw-print.svg";
+import GoogleIcon from "../icons/google.svg";
 
 import Locale from "../locales";
+
+import { openLogoutModal, openLoginModal, logout } from "../redux/authSlice";
+import { useRequireAuth } from "./auth/useRequireAuth";
 
 import { Theme, useAppConfig } from "../store";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
@@ -152,6 +156,8 @@ export function SideBar(props: { className?: string }) {
   const dispatch = useAppDispatch();
   const rooms = useAppSelector((state) => state.chatrooms.rooms);
   const chatroomsState = useAppSelector((state) => state.chatrooms);
+  const auth = useAppSelector((state) => state.auth);
+  const { requireAuth } = useRequireAuth();
   const currentUserAgentId = useAppSelector(
     (state) => state.chatrooms.currentUserAgentId,
   );
@@ -213,7 +219,9 @@ export function SideBar(props: { className?: string }) {
           text={shouldNarrow ? undefined : Locale.Template.Name}
           className={styles["sidebar-bar-button"]}
           onClick={() => {
-            navigate(Path.MyAgent, { state: { fromHome: true } });
+            requireAuth(() => {
+              navigate(Path.MyAgent, { state: { fromHome: true } });
+            });
           }}
           shadow
         />
@@ -285,6 +293,21 @@ export function SideBar(props: { className?: string }) {
               }
               onClick={nextTheme}
               shadow
+            />
+          </div>
+          <div className={styles["sidebar-action"]}>
+            <IconButton
+              icon={<GoogleIcon />}
+              // text={shouldNarrow ? undefined : auth.isLoggedIn ? auth.name ?? "User" : "Login"}
+              onClick={() => {
+                if (auth.isLoggedIn) {
+                  dispatch(openLogoutModal());
+                } else {
+                  dispatch(openLoginModal());
+                }
+              }}
+              shadow
+              title={auth.isLoggedIn ? "Logout" : "Login"}
             />
           </div>
           <div className={styles["sidebar-action"]}>
