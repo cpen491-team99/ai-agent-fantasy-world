@@ -6,6 +6,10 @@ import { useNavigate } from "react-router-dom";
 import { Path } from "../constant";
 import MaxIcon from "../icons/max.svg";
 import MinIcon from "../icons/min.svg";
+import { useEffect, useState } from "react";
+import modalStyles from "./home.module.scss";
+import { Markdown } from "./markdown";
+import StoryImage from "../assets/story.jpg";
 
 import "../styles/landing.scss";
 import { useAppConfig } from "../store/config";
@@ -14,6 +18,38 @@ export function LandingPage() {
   const isMobileScreen = useMobileScreen();
   const navigate = useNavigate();
   const config = useAppConfig();
+
+  const [isWorldInfoOpen, setWorldInfoOpen] = useState(false);
+  const [worldInfoLoading, setWorldInfoLoading] = useState(false);
+  const [worldInfoError, setWorldInfoError] = useState<string | null>(null);
+  const [worldInfoMd, setWorldInfoMd] = useState<string>("");
+
+  useEffect(() => {
+    if (!isWorldInfoOpen) return;
+    if (worldInfoMd) return;
+
+    const controller = new AbortController();
+    setWorldInfoLoading(true);
+    setWorldInfoError(null);
+
+    fetch("/world-info.md", { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok)
+          throw new Error(`Failed to load world-info.md (${res.status})`);
+        return res.text();
+      })
+      .then((md) => setWorldInfoMd(md))
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        setWorldInfoError(err?.message ?? "Failed to load World Info");
+      })
+      .finally(() => {
+        if (controller.signal.aborted) return;
+        setWorldInfoLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [isWorldInfoOpen, worldInfoMd]);
 
   return (
     <>
@@ -145,6 +181,32 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* About this world: clickable section under the chat preview */}
+        <section className="landing-preview">
+          <button
+            type="button"
+            className="landing-preview-content landing-preview-content-clickable"
+            onClick={() => setWorldInfoOpen(true)}
+          >
+            <div className="landing-preview-text">
+              <h2 className="landing-preview-title">About Honeyveil</h2>
+              <p className="landing-preview-desc">
+                Explore the rich story of the mythical kingdom through the lush
+                landmarks and vibrant characters.
+              </p>
+            </div>
+            <div className="landing-preview-visual">
+              <Image
+                src={StoryImage}
+                alt="Honeyveil story artwork"
+                className="landing-preview-image"
+                width={400}
+                height={300}
+              />
+            </div>
+          </button>
+        </section>
+
         {/* Footer Tagline */}
         <section className="landing-footer">
           <p className="landing-footer-text">
@@ -152,6 +214,48 @@ export function LandingPage() {
           </p>
         </section>
       </div>
+
+      {isWorldInfoOpen && (
+        <div
+          className={modalStyles["world-info-overlay"]}
+          onClick={() => setWorldInfoOpen(false)}
+          role="presentation"
+        >
+          <div
+            className={modalStyles["world-info-modal"]}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="world-info-title"
+          >
+            <div className={modalStyles["world-info-header"]}>
+              <h2 id="world-info-title">About Honeyveil</h2>
+              <button
+                type="button"
+                className={modalStyles["world-info-close"]}
+                onClick={() => setWorldInfoOpen(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={modalStyles["world-info-body"]}>
+              {worldInfoError ? (
+                <div className={modalStyles["world-info-text"]}>
+                  {worldInfoError}
+                </div>
+              ) : (
+                <Markdown
+                  content={worldInfoMd}
+                  loading={worldInfoLoading}
+                  fontSize={21}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

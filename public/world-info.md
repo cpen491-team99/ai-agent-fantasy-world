@@ -1,6 +1,6 @@
 # Hail, Traveler!
 
-Welcome to **Honeyveil**. This is a kingdom comprising expansive mountain ranges, vast river systems, and lush wetlands. It is inhabited by anthropomorphic animals and magical creatures who are entirely unaware that their home and their very lives are a magical illusion. You are here to witness a story led by **Clover** (the hyper-energetic Wizard Fox), **Queen Seralith** (the elusive swan queen), **The Brave Little Mouse** (a legend with a secret), **Bramble Bunny** (the empathetic heart of the woods), and many more mythical creatures residing in the magical realm. 
+Welcome to **Honeyveil**. This is a kingdom comprising of expansive mountain ranges, vast river systems, and lush wetlands. It is inhabited by anthropomorphic animals and magical creatures who are entirely unaware that their home and their very lives are a magical illusion. You are here to witness a story led by **Clover** (the hyper-energetic Wizard Fox), **Queen Seralith** (the elusive swan queen), **The Brave Little Mouse** (a legend with a secret), **Bramble Bunny** (the empathetic heart of the woods), and many more mythical creatures residing in the magical realm. 
 
 ## Chapter 1: The Fraying Stitches
 

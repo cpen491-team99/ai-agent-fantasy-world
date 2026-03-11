@@ -37,7 +37,6 @@ import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 import { showToast } from "./ui-lib";
 import { getAgentAvatar } from "../utils/agent-avatar";
-import { Markdown } from "./markdown";
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -161,38 +160,6 @@ export function SideBar(props: { className?: string }) {
   //Legacy agent selectuion feature
   const [showAgentMenu, setShowAgentMenu] = useState(false);
 
-  const [isWorldInfoOpen, setWorldInfoOpen] = useState(false);
-  const [worldInfoLoading, setWorldInfoLoading] = useState(false);
-  const [worldInfoError, setWorldInfoError] = useState<string | null>(null);
-  const [worldInfoMd, setWorldInfoMd] = useState<string>("");
-
-  useEffect(() => {
-    if (!isWorldInfoOpen) return;
-    if (worldInfoMd) return;
-
-    const controller = new AbortController();
-    setWorldInfoLoading(true);
-    setWorldInfoError(null);
-
-    fetch("/world-info.md", { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok)
-          throw new Error(`Failed to load world-info.md (${res.status})`);
-        return res.text();
-      })
-      .then((md) => setWorldInfoMd(md))
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        setWorldInfoError(err?.message ?? "Failed to load World Info");
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setWorldInfoLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [isWorldInfoOpen, worldInfoMd]);
-
   // drag side bar
   const { onDragStart, shouldNarrow } = useDragSideBar();
   const navigate = useNavigate();
@@ -272,22 +239,6 @@ export function SideBar(props: { className?: string }) {
         }}
       >
         <ChatList narrow={shouldNarrow} />
-      </div>
-
-      {/* World info button under room tabs */}
-      <div className={styles["world-info-container"]}>
-        <button
-          type="button"
-          className={styles["world-info-button"]}
-          onClick={() => setWorldInfoOpen(true)}
-        >
-          <span className={styles["world-info-button-title"]}>
-            About Honeyveil
-          </span>
-          <span className={styles["world-info-button-subtitle"]}>
-            Read about this world
-          </span>
-        </button>
       </div>
 
       {/* For redux testing */}
@@ -390,48 +341,6 @@ export function SideBar(props: { className?: string }) {
           />
         </div> */}
       </div>
-
-      {isWorldInfoOpen && (
-        <div
-          className={styles["world-info-overlay"]}
-          onClick={() => setWorldInfoOpen(false)}
-          role="presentation"
-        >
-          <div
-            className={styles["world-info-modal"]}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="world-info-title"
-          >
-            <div className={styles["world-info-header"]}>
-              <h2 id="world-info-title">About Honeyveil</h2>
-              <button
-                type="button"
-                className={styles["world-info-close"]}
-                onClick={() => setWorldInfoOpen(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className={styles["world-info-body"]}>
-              {worldInfoError ? (
-                <div className={styles["world-info-text"]}>
-                  {worldInfoError}
-                </div>
-              ) : (
-                <Markdown
-                  content={worldInfoMd}
-                  loading={worldInfoLoading}
-                  fontSize={21}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <div
         className={styles["sidebar-drag"]}
