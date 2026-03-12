@@ -1719,8 +1719,8 @@ User: "${pendingSearchQuery.current}"`;
 }
 
 export function Chat() {
-  const chatStore = useChatStore();
-  const sessionIndex = chatStore.currentSessionIndex;
-  return <_Chat key={sessionIndex}></_Chat>;
+  // Subscribe to store updates without forcing remounts via a changing `key`.
+  useChatStore();
+  return <_Chat />;
   // return <PrivateChat />;
 }
