@@ -32,6 +32,7 @@ import BrainIcon from "../icons/brain.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
+import { getMqttClient } from "../client/mqtt";
 
 import {
   ChatMessage,
@@ -92,6 +93,14 @@ import Image from "next/image";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { ChatImage } from "../typing";
 import ModelSelect from "./model-select";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import {
+  setPrivateChatMessages,
+  addPrivateChatMessage,
+  setCurrentRoomId,
+  PRIVATE_ROOM_ID,
+} from "../redux/chatroomsSlice";
+import { current } from "@reduxjs/toolkit";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -105,6 +114,22 @@ export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
       </div>
     </div>
   );
+}
+
+function formatMessageTime(dateLike: string | number | Date | undefined) {
+  if (!dateLike) return "";
+
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return "";
+
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 export function SessionConfigModel(props: { onClose: () => void }) {
@@ -568,6 +593,13 @@ function _Chat() {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
+  const pendingSearchQuery = useRef("");
+  const currentUserAgentId = useAppSelector(
+    (state) => state.chatrooms.currentUserAgentId,
+  );
+  const currentUserAgentName =
+    currentUserAgentId.substring(0, 1).toUpperCase() +
+    currentUserAgentId.substring(1).toLowerCase();
   const { submitKey, shouldSubmit } = useSubmitHandler();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrolledToBottom = scrollRef?.current
@@ -588,6 +620,131 @@ function _Chat() {
   const [showEditPromptModal, setShowEditPromptModal] = useState(false);
   const webllm = useContext(WebLLMContext)!;
   const mlcllm = useContext(MLCLLMContext)!;
+  const dispatch = useAppDispatch();
+
+  const userId = currentUserAgentId; // Placeholder until we have users
+  const recentlySentRef = useRef<Array<{ content: string; ts: number }>>([]);
+
+  function toChatMessage(m: any): ChatMessage {
+    let text = String(m.text ?? m.msg ?? "");
+
+    let senderId = String(m.senderId ?? m.fromAgentId ?? m.agentId ?? "");
+
+    let isFrontendUser =
+      !!m.senderIsUser || senderId.toLowerCase() === userId.toLowerCase();
+
+    const spoofMatch = text.match(/^<<<ACTING_AS:([^>]+)>>>(.*)/s);
+    if (spoofMatch) {
+      senderId = spoofMatch[1];
+      text = spoofMatch[2];
+      isFrontendUser = false;
+    }
+
+    const dateObj = m.sentAt
+      ? new Date(m.sentAt)
+      : new Date(m.ts ?? Date.now());
+
+    return createMessage({
+      id: m.id ? String(m.id) : undefined,
+      role: isFrontendUser ? "user" : "assistant",
+      content: text,
+      date: dateObj.toISOString(),
+      agentId: isFrontendUser ? undefined : senderId,
+      model: isFrontendUser ? undefined : senderId,
+      isUserAgent: isFrontendUser,
+    });
+  }
+
+  const chatStoreRef = useRef(chatStore);
+
+  useEffect(() => {
+    chatStoreRef.current = chatStore;
+  }, [chatStore]);
+
+  useEffect(() => {
+    const client = getMqttClient();
+
+    const unsubscribe = client.addHandlers({
+      onRoomHistory: (data) => {
+        if (data.roomId !== PRIVATE_ROOM_ID) return;
+        if (data.error) return;
+
+        const msgs = (data.messages ?? [])
+          .slice()
+          .sort((a, b) => {
+            const ta = new Date(a.sentAt ?? a.ts ?? a.date ?? 0).getTime();
+            const tb = new Date(b.sentAt ?? b.ts ?? b.date ?? 0).getTime();
+            return ta - tb;
+          })
+          .map(toChatMessage);
+
+        chatStoreRef.current.updateCurrentSession((s) => {
+          s.messages = [...msgs];
+        });
+        dispatch(setPrivateChatMessages(msgs));
+      },
+      onChatOut: (msg) => {
+        if (msg.roomId !== PRIVATE_ROOM_ID) return;
+
+        let content = msg.msg;
+        const spoofMatch = content.match(/^<<<ACTING_AS:([^>]+)>>>(.*)/s);
+
+        if (spoofMatch) {
+          content = spoofMatch[2];
+        }
+
+        if (msg.fromAgentId === userId) {
+          const now = Date.now();
+          recentlySentRef.current = recentlySentRef.current.filter(
+            (x) => now - x.ts < 10000,
+          );
+
+          const idx = recentlySentRef.current.findIndex(
+            (x) => x.content === content,
+          );
+
+          if (idx >= 0) {
+            recentlySentRef.current.splice(idx, 1);
+            return;
+          }
+        }
+        const newMsg = toChatMessage(msg);
+
+        chatStoreRef.current.updateCurrentSession((s) => {
+          s.messages.push(newMsg);
+        });
+        dispatch(addPrivateChatMessage(newMsg));
+      },
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Reflect in Redux that we're on the private agent chat (currentRoomId; room not in sidebar list)
+  useEffect(() => {
+    dispatch(setCurrentRoomId(PRIVATE_ROOM_ID));
+  }, [dispatch]);
+
+  useEffect(() => {
+    const client = getMqttClient();
+
+    try {
+      client.joinRoom(PRIVATE_ROOM_ID);
+      client.requestRoomHistory(PRIVATE_ROOM_ID);
+    } catch (e) {
+      console.error("[MQTT] failed to join private-room", e);
+    }
+
+    return () => {
+      // best-effort leave
+      try {
+        client.leaveRoom();
+      } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const llm =
     config.modelClientType === ModelClient.MLCLLM_API ? mlcllm : webllm;
@@ -659,8 +816,145 @@ function _Chat() {
     }
   };
 
+  chatStoreRef.current = chatStore;
+  const llmRef = useRef(llm);
+  llmRef.current = llm;
+  const configRef = useRef(config);
+  configRef.current = config;
+
+  useEffect(() => {
+    const client = getMqttClient();
+
+    const unsubscribe = client.addHandlers({
+      onMemoryFind: async (data) => {
+        if (data.agentId && data.agentId !== currentUserAgentId) {
+          // Memory is for correct agent
+          return;
+        }
+
+        if (!pendingSearchQuery.current) {
+          return;
+        }
+
+        const validMemories = (data.results || []).filter(
+          (r: any) => r.score > 0.75, // Should standardize this with chatroom
+        );
+        let finalUserContent = "";
+
+        if (validMemories.length > 0) {
+          const contextText = validMemories
+            .map((r: any) => `"${r.text}" (said in ${r.location})`)
+            .join("\n");
+
+          finalUserContent = `
+[SYSTEM: You have a faint memory of the following interactions:
+${contextText}
+Use this context ONLY if relevant. If not helpful, IGNORE and respond naturally.]
+
+User: "${pendingSearchQuery.current}"`;
+        } else {
+          finalUserContent = pendingSearchQuery.current;
+        }
+
+        finalUserContent = `[SYSTEM: You are a Sly Raccoon that lives in a whimsical village with several other animals of unique personalities.
+        You personally are a bit sneaky, and like to embellish the truth. Currently, you are talking to a user that will ask you question about your life.
+        Respond accordingly.] ${finalUserContent}`; // Specifically for raccoon
+
+        const currentStore = chatStoreRef.current;
+        const currentLLM = llmRef.current;
+        const currentConfig = configRef.current;
+
+        const botMsgId = Date.now().toString();
+        currentStore.updateCurrentSession((s) => {
+          s.messages.push(
+            createMessage({
+              id: botMsgId,
+              role: "assistant",
+              content: "",
+              streaming: true,
+              model: currentUserAgentId,
+              date: new Date().toISOString(),
+            }),
+          );
+        });
+
+        const history = currentStore
+          .currentSession()
+          .messages.filter((m) => m.id !== botMsgId);
+        const messagesForLLM = [...history];
+
+        if (
+          messagesForLLM.length > 0 &&
+          messagesForLLM[messagesForLLM.length - 1].role === "user"
+        ) {
+          messagesForLLM.pop();
+        }
+
+        messagesForLLM.push({
+          role: "user",
+          content: finalUserContent,
+        } as any);
+
+        try {
+          await currentLLM.chat({
+            messages: messagesForLLM,
+            config: { ...currentConfig.modelConfig, stream: true },
+            onUpdate: (content) => {
+              console.log("On Update", content);
+              currentStore.updateCurrentSession((s) => {
+                const msg = s.messages.find((m) => m.id === botMsgId);
+                if (msg) {
+                  msg.content = content;
+                  msg.streaming = true;
+                }
+              });
+            },
+            onFinish: (content) => {
+              console.log("On Finish", content);
+              let botMsg: ChatMessage | undefined;
+              currentStore.updateCurrentSession((s) => {
+                const msg = s.messages.find((m) => m.id === botMsgId);
+                if (msg) {
+                  msg.content = content;
+                  msg.streaming = false;
+                  botMsg = msg;
+                }
+              });
+
+              recentlySentRef.current.push({
+                content: content,
+                ts: Date.now(),
+              });
+              const spoofedContent = `<<<ACTING_AS:${currentUserAgentId}>>>${content}`;
+
+              try {
+                getMqttClient().sendRoomMessage(
+                  PRIVATE_ROOM_ID,
+                  spoofedContent,
+                );
+              } catch (e) {
+                console.error("[MQTT] failed to save AI response", e);
+              }
+              /* if (botMsg) {
+                dispatch(addPrivateChatMessage(botMsg));
+              } */
+            },
+            onError: (err) => console.error("LLM Error", err),
+          });
+        } catch (e) {
+          console.error(e);
+        }
+
+        pendingSearchQuery.current = "";
+      },
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const onSubmit = (userInput: string) => {
     if (userInput.trim() === "") return;
+    if (isStreaming) return;
 
     const matchCommand = chatCommands.match(userInput);
     if (matchCommand.matched) {
@@ -670,9 +964,39 @@ function _Chat() {
       return;
     }
 
-    if (isStreaming) return;
+    pendingSearchQuery.current = userInput;
+    recentlySentRef.current.push({ content: userInput, ts: Date.now() });
 
-    chatStore.onUserInput(userInput, llm, attachImages);
+    const now = Date.now();
+    const userMsg = createMessage({
+      role: "user",
+      content: userInput,
+      date: new Date(now).toISOString(),
+      isUserAgent: true,
+    });
+
+    chatStore.updateCurrentSession((s) => {
+      s.messages.push(userMsg);
+    });
+
+    dispatch(addPrivateChatMessage(userMsg));
+
+    try {
+      getMqttClient().sendRoomMessage(PRIVATE_ROOM_ID, userInput);
+    } catch (e) {
+      console.error("[MQTT] failed to send", e);
+    }
+
+    try {
+      console.log(
+        `[Chat] Requesting memories for agent: ${currentUserAgentId}`,
+      );
+      getMqttClient().requestAgentMemoryFind(userInput, currentUserAgentId);
+    } catch (e) {
+      console.error("MQTT Error", e);
+      showToast("Error: Backend not connected");
+    }
+
     setAttachImages([]);
     localStorage.setItem(LAST_INPUT_KEY, userInput);
     setUserInput("");
@@ -1048,11 +1372,9 @@ function _Chat() {
             className={`window-header-main-title ${styles["chat-body-main-title"]}`}
             onClickCapture={() => setShowEditPromptModal(false)} // If we want edit conversation at all, keep this, else set to false and change styling to remove underline
           >
-            {!session.topic ? DEFAULT_TOPIC : session.topic}
+            {"Chat with Your Agent"}
           </div>
-          <div className="window-header-sub-title">
-            {Locale.Chat.SubTitle(session.messages.length)}
-          </div>
+          <div className="window-header-sub-title">{currentUserAgentName}</div>
         </div>
         <div className="window-actions">
           <div className="window-action-button">
@@ -1159,13 +1481,22 @@ function _Chat() {
                       )}
                       {message.role === "assistant" && (
                         <div className={styles["chat-message-role-name"]}>
-                          {models.find((m) => m.name === message.model)
-                            ? models.find((m) => m.name === message.model)!
-                                .display_name
-                            : message.model}
+                          {
+                            currentUserAgentName
+                            /* Hardcoded to just be currentUserAgentName, which should be right,
+                         but isnt right now since privateDB is mixed with messages from diff agents. */
+                          }
                         </div>
                       )}
-                      {showActions && (
+                      {message.role === "user" && (
+                        <div
+                          className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
+                        >
+                          {""}{" "}
+                          {/* Left Blank for now since ik jiashu was working on ui stuff relating to this */}
+                        </div>
+                      )}
+                      {showActions && message.role === "assistant" && (
                         <div className={styles["chat-message-actions"]}>
                           <div className={styles["chat-input-actions"]}>
                             {message.streaming ? (
@@ -1273,7 +1604,7 @@ function _Chat() {
                     <div>
                       {isContext
                         ? Locale.Chat.IsContext
-                        : message.date.toLocaleString()}
+                        : formatMessageTime(message.date)}
                     </div>
                   </div>
                 </div>
@@ -1388,7 +1719,8 @@ function _Chat() {
 }
 
 export function Chat() {
-  const chatStore = useChatStore();
-  const sessionIndex = chatStore.currentSessionIndex;
-  return <_Chat key={sessionIndex}></_Chat>;
+  // Subscribe to store updates without forcing remounts via a changing `key`.
+  useChatStore();
+  return <_Chat />;
+  // return <PrivateChat />;
 }

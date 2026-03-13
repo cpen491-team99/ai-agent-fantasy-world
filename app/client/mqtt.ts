@@ -6,25 +6,6 @@ import mqtt, { MqttClient } from "mqtt";
  * - Handles connect/reconnect
  * - Buffers publishes while disconnected (outbox)
  * - Provides simple callback hooks for incoming messages
- *
- * Topics (same as your mock dev client):
- * - subscribe base:
- *   rooms/state
- *   rooms/+/members
- *   rooms/+/chat/out
- *   rooms/+/history/response/+
- *   senders/history/response/+
- *   agents/<agentId>/memory/find/response/+
- *
- * - publish:
- *   agents/<agentId>/status  (retained online/offline)
- *   agents/<agentId>/heartbeat
- *   rooms/<roomId>/join
- *   rooms/<roomId>/leave
- *   rooms/<roomId>/chat/in
- *   rooms/<roomId>/history/request
- *   senders/history/request
- *   agents/<agentId>/memory/find/request
  */
 
 export type SenderType = "agent" | "user";
@@ -60,7 +41,7 @@ export type MemoryFindResponse = {
   textQuery?: string;
   results?: any[];
   error?: string;
-  // backend also includes: agentId, ts — safe to ignore
+  agentId?: string;
 };
 
 type BufferedMessage = {
@@ -96,8 +77,8 @@ type Handlers = {
   onSenderHistory?: (data: SenderHistoryResponse) => void;
   onMemoryFind?: (data: MemoryFindResponse) => void;
 
-  onRoomsState?: (data: any) => void; // you can type this later
-  onRoomMembers?: (roomId: string, data: any) => void; // you can type this later
+  onRoomsState?: (data: any) => void;
+  onRoomMembers?: (roomId: string, data: any) => void;
 };
 
 export class FrontendMqttClient {
@@ -260,15 +241,15 @@ export class FrontendMqttClient {
       }
 
       // agents/<agentId>/memory/find/response/<requestId>
-      const { agentId } = this.opts ?? { agentId: "" };
       const mMem = topic.match(
-        new RegExp(
-          `^agents\\/${agentId}\\/memory\\/find\\/response\\/([^/]+)$`,
-        ),
+        /^agents\/([^/]+)\/memory\/find\/response\/([^/]+)$/,
       );
       if (mMem) {
+        const topicAgentId = mMem[1];
         try {
           const data = JSON.parse(text) as MemoryFindResponse;
+          // Make sure json data contains agentID
+          (data as any).agentId = topicAgentId;
 
           console.log("[MQTT] memory find response topic matched", {
             optsAgentId: agentId, // the one used to build the regex
@@ -332,7 +313,6 @@ export class FrontendMqttClient {
   subscribeBase() {
     if (!this.client) return;
 
-    const { agentId } = this.opts!;
     this.client.subscribe(
       [
         "rooms/state",
@@ -340,7 +320,7 @@ export class FrontendMqttClient {
         "rooms/+/chat/out",
         "rooms/+/history/response/+",
         "senders/history/response/+",
-        `agents/${agentId}/memory/find/response/+`,
+        "agents/+/memory/find/response/+",
       ],
       (err) => {
         if (err) {
@@ -406,7 +386,7 @@ export class FrontendMqttClient {
     }, heartbeatMs);
   }
 
-  // ---------- room actions (same as mock client) ----------
+  // ---------- room actions ----------
 
   joinRoom(roomId: string) {
     if (!this.opts) throw new Error("MQTT client not connected yet");
@@ -491,11 +471,7 @@ export class FrontendMqttClient {
     }
   }
 
-  requestRoomHistory(
-    roomId: string,
-    limit = 100,
-    before: string | null = null,
-  ) {
+  requestRoomHistory(roomId: string, limit = 20, before: string | null = null) {
     if (!this.opts) throw new Error("MQTT client not connected yet");
     const { agentId } = this.opts;
     const requestId = `${agentId}-${Date.now()}`;
@@ -528,6 +504,7 @@ export class FrontendMqttClient {
     return requestId;
   }
 
+  // Default request for "My" memory
   requestMemoryFind(textQuery: string) {
     if (!this.opts) throw new Error("MQTT client not connected yet");
     const { agentId } = this.opts;
@@ -542,6 +519,20 @@ export class FrontendMqttClient {
 
     this.safePublish(
       `agents/${agentId}/memory/find/request`,
+      JSON.stringify({ requestId, textQuery }),
+      { qos: 0, retain: false },
+    );
+
+    return requestId;
+  }
+
+  // Method to request memories for specific agent
+  requestAgentMemoryFind(textQuery: string, targetAgentID: string) {
+    if (!this.opts) throw new Error("MQTT client not connected yet");
+    const requestId = `${targetAgentID}-${Date.now()}`;
+
+    this.safePublish(
+      `agents/${targetAgentID}/memory/find/request`,
       JSON.stringify({ requestId, textQuery }),
       { qos: 0, retain: false },
     );
