@@ -66,10 +66,11 @@ export const metadata: Metadata = {
 
 const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com;
     worker-src 'self' blob:;
-    connect-src 'self' blob: data: https: http: ws: wss:;
-    style-src 'self' 'unsafe-inline';
+    frame-src 'self' https://accounts.google.com;
+    connect-src 'self' blob: data: https: http: ws: wss: https://accounts.google.com;
+    style-src 'self' 'unsafe-inline' https://accounts.google.com;
     img-src 'self' blob: data: https:;
     font-src 'self';
     object-src 'none';

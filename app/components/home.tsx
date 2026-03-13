@@ -30,6 +30,9 @@ import { ModelClient, useChatStore } from "../store";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { MlcLLMApi } from "../client/mlcllm";
 import { Provider } from "react-redux";
+import LoginModal from "@/app/components/auth/LoginModal";
+import LogoutModal from "@/app/components/auth/LogoutModal";
+import AgentSelectionModal from "@/app/components/auth/AgentSelectionModal";
 
 export function Loading(props: { noLogo?: boolean }) {
   return (
@@ -166,6 +169,10 @@ function Screen() {
             <Route path={Path.MyAgent} element={<Chat />} />
           </Routes>
         </div>
+
+        <LoginModal />
+        <LogoutModal />
+        <AgentSelectionModal />
       </>
     </div>
   );

@@ -481,6 +481,12 @@
   direction: rtl;
 }
 
+.agent-icon-image {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 999px;
+}
 .world-info-container {
   margin-top: 12px;
 }
