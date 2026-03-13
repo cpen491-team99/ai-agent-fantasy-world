@@ -1,10 +1,13 @@
 @import "../styles/animation.scss";
 
+$pixel-font: 'VT323', 'Courier New', monospace;
+
 .card {
   background-color: var(--white);
-  border-radius: 10px;
-  box-shadow: var(--card-shadow);
+  border-radius: 0;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
   padding: 10px;
+  border: var(--border-in-light);
 }
 
 .popover {
@@ -32,8 +35,8 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(5px);
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
 }
 
 .tooltip {
@@ -56,13 +59,15 @@
 
 .tooltip-content {
   position: absolute;
-  padding: 8px;
-  background-color: black;
-  color: white;
-  border-radius: 4px;
+  padding: 8px 12px;
+  background-color: var(--black);
+  color: var(--white);
+  border: 2px solid var(--white);
+  border-radius: 0;
   z-index: 3;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 16px;
+  font-family: $pixel-font;
   text-align: center;
 
   &.tooltip-content-left {
@@ -98,9 +103,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 40px;
+  min-height: 50px;
   border-bottom: var(--border-in-light);
-  padding: 10px 20px;
+  padding: 15px 20px;
   animation: slide-in ease 0.6s;
 
   &.list-item-separator {
@@ -119,21 +124,27 @@
     }
 
     .list-item-title {
-      font-size: 14px;
+      font-size: 24px;
       font-weight: bolder;
+      color: var(--black);
+      margin-bottom: 4px;
+      font-family: $pixel-font;
     }
 
     .list-item-sub-title {
-      font-size: 12px;
+      font-size: 16px;
       font-weight: normal;
+      color: var(--black);
+      opacity: 0.8;
+      font-family: $pixel-font;
     }
   }
 }
 
 .list {
   border: var(--border-in-light);
-  border-radius: 10px;
-  box-shadow: var(--card-shadow);
+  border-radius: 0;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
   margin-bottom: 20px;
   animation: slide-in ease 0.3s;
   background: var(--white);
@@ -144,9 +155,10 @@
 }
 
 .modal-container {
-  box-shadow: var(--card-shadow);
+  box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.3);
   background-color: var(--white);
-  border-radius: 12px;
+  border-radius: 0;
+  border: var(--border-in-light);
   width: 80vw;
   max-width: 900px;
   min-width: 300px;
@@ -173,10 +185,13 @@
     align-items: center;
     justify-content: space-between;
     border-bottom: var(--border-in-light);
+    background-color: var(--primary);
+    color: var(--white);
 
     .modal-title {
       font-weight: bolder;
-      font-size: 16px;
+      font-size: 24px;
+      font-family: $pixel-font;
     }
 
     .modal-header-actions {
@@ -200,6 +215,7 @@
     max-height: 50vh;
     padding: var(--modal-padding);
     overflow: auto;
+    background-color: var(--gray);
   }
 
   .modal-footer {
@@ -207,7 +223,7 @@
     display: flex;
     justify-content: flex-end;
     border-top: var(--border-in-light);
-    box-shadow: var(--shadow);
+    background-color: var(--second);
 
     .modal-actions {
       display: flex;
@@ -263,13 +279,14 @@
   .toast-content {
     max-width: 80vw;
     word-break: break-all;
-    font-size: 14px;
+    font-size: 20px;
+    font-family: $pixel-font;
     background-color: var(--white);
-    box-shadow: var(--card-shadow);
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.3);
     border: var(--border-in-light);
     color: var(--black);
-    padding: 10px 20px;
-    border-radius: 50px;
+    padding: 12px 24px;
+    border-radius: 0;
     margin-bottom: 20px;
     display: flex;
     align-items: center;
@@ -293,13 +310,15 @@
 
 .input {
   border: var(--border-in-light);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 10px;
   font-family: inherit;
+  font-size: 20px;
   background-color: var(--white);
   color: var(--black);
   resize: none;
   min-width: 50px;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);
 }
 
 .select-with-icon {
@@ -310,12 +329,15 @@
     height: 100%;
     border: var(--border-in-light);
     padding: 10px 35px 10px 10px;
-    border-radius: 10px;
+    border-radius: 0;
     appearance: none;
     cursor: pointer;
     background-color: var(--white);
     color: var(--black);
     text-align: center;
+    font-family: $pixel-font;
+    font-size: 20px;
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
   }
 
   .select-with-icon-icon {
@@ -330,19 +352,20 @@
 .modal-input {
   height: 100%;
   width: 100%;
-  border-radius: 10px;
+  border-radius: 0;
   border: var(--border-in-light);
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.03);
+  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.1);
   background-color: var(--white);
   color: var(--black);
-  font-family: inherit;
-  padding: 10px;
+  font-family: $pixel-font;
+  font-size: 20px;
+  padding: 12px;
   resize: none;
   outline: none;
   box-sizing: border-box;
 
   &:focus {
-    border: 1px solid var(--primary);
+    border: 2px solid var(--primary);
   }
 }
 
