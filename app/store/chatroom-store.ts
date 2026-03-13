@@ -487,12 +487,20 @@ export async function attemptAgentResponse(
 
   // 1. Self-Exclusion Check
   if (triggerMessage.agentId === state.agentConfig.agentId) {
+    console.log(
+      `[Inference Node - ${state.agentConfig.agentId}] Self-Exclusion: Ignoring own message.`,
+    );
     return false;
   }
 
+  const triggerContent = getMessageTextContent(triggerMessage);
+  console.log(
+    `[Inference Node - ${state.agentConfig.agentId}] Received message from ${triggerMessage.agentId}: "${triggerContent.substring(0, 50)}..."`,
+  );
+
   // 2. Semantic Relevance Calculation
   // vMsg ・ vPersona / (||vMsg|| * ||vPersona||)
-  const vMsg = getMockEmbedding(getMessageTextContent(triggerMessage));
+  const vMsg = getMockEmbedding(triggerContent);
   const vPersona = getMockEmbedding(state.agentConfig.systemPrompt);
 
   // adding a bit of randomness to mock since getMockEmbedding isn't a real semantic space
@@ -503,64 +511,94 @@ export async function attemptAgentResponse(
     Math.min(1, baseSimilarity * 0.5 + Math.random() * 0.5),
   );
 
-  // 3. Probabilistic Lock Acquisition (Logistic Function)
-  const k = 10; // Steepness coefficient
-  const x0 = 0.5; // Relevance Threshold inflection point
-  const pAttempt = 1 / (1 + Math.exp(-k * (relevance - x0)));
-
-  // Generate random number
-  const r = Math.random();
-  console.log(
-    `[Inference Node] relevance=${relevance.toFixed(3)}, P(attempt)=${pAttempt.toFixed(3)}, roll=${r.toFixed(3)}`,
-  );
-
-  if (r > pAttempt) {
-    console.log(`[Inference Node] Agent remained silent (r > P).`);
-    return false; // Remain silent
-  }
-
-  console.log(
-    `[Inference Node] Attempting to acquire lock for room ${roomId}...`,
-  );
-
-  // 4. Concurrency Control (Acquire Lock via MQTT)
-  return new Promise((resolve) => {
-    const client = getMqttClient();
-    let resolved = false;
-
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        unsub();
-        console.warn(`[Inference Node] Lock request timed out`);
-        resolve(false);
+  return new Promise(async (resolve) => {
+    while (true) {
+      // Re-check state inside the loop
+      const currentState = useChatroomStore.getState();
+      if (!currentState.autoRespondEnabled || currentState.isGenerating) {
+        console.log(
+          `[Inference Node - ${currentState.agentConfig?.agentId}] Exiting lock loop. Auto-respond off or already generating.`,
+        );
+        return resolve(false);
       }
-    }, 2000); // Wait 2s for backend response
 
-    const unsub = client.addHandlers({
-      onLockResponse: (data) => {
-        if (
-          data.roomId === roomId &&
-          data.agentId === state.agentConfig!.agentId
-        ) {
-          clearTimeout(timeout);
+      // 3. Probabilistic Lock Acquisition (Logistic Function)
+      const k = 10; // Steepness coefficient
+      const x0 = 0.5; // Relevance Threshold inflection point
+      const pAttempt = 1 / (1 + Math.exp(-k * (relevance - x0)));
+
+      // Generate random number
+      const r = Math.random();
+      console.log(
+        `[Inference Node - ${currentState.agentConfig!.agentId}] Math details: (S_rel=${relevance.toFixed(3)}, P_attempt=${pAttempt.toFixed(3)}, r=${r.toFixed(3)})`,
+      );
+
+      if (r > pAttempt) {
+        console.log(
+          `[Inference Node - ${currentState.agentConfig!.agentId}] Agent remains SILENT (r > P). Retrying in 3s...`,
+        );
+        await new Promise((res) => setTimeout(res, 3000));
+        continue; // Retry probability roll
+      }
+
+      console.log(
+        `[Inference Node - ${currentState.agentConfig!.agentId}] Attempting to acquire lock for room ${roomId}...`,
+      );
+
+      // 4. Concurrency Control (Acquire Lock via MQTT)
+      const lockGranted = await new Promise<boolean>((resolveLock) => {
+        const client = getMqttClient();
+        let resolved = false;
+
+        const timeout = setTimeout(() => {
           if (!resolved) {
             resolved = true;
             unsub();
-            if (data.status === "granted") {
-              console.log(`[Inference Node] Lock GRANTED for room ${roomId}`);
-              resolve(true);
-            } else {
-              console.log(
-                `[Inference Node] Lock DENIED for room ${roomId} (another agent claimed it)`,
-              );
-              resolve(false);
-            }
+            console.warn(
+              `[Inference Node - ${currentState.agentConfig!.agentId}] Lock request timed out`,
+            );
+            resolveLock(false);
           }
-        }
-      },
-    });
+        }, 2000); // Wait 2s for backend response
 
-    client.acquireLock(roomId);
+        const unsub = client.addHandlers({
+          onLockResponse: (data) => {
+            if (
+              data.roomId === roomId &&
+              data.agentId === currentState.agentConfig!.agentId
+            ) {
+              clearTimeout(timeout);
+              if (!resolved) {
+                resolved = true;
+                unsub();
+                if (data.status === "granted") {
+                  resolveLock(true);
+                } else {
+                  console.log(
+                    `[Inference Node - ${currentState.agentConfig!.agentId}] Lock Status: DENIED for room ${roomId} (Another agent was faster).`,
+                  );
+                  resolveLock(false);
+                }
+              }
+            }
+          },
+        });
+
+        client.acquireLock(roomId);
+      });
+
+      if (lockGranted) {
+        console.log(
+          `[Inference Node - ${currentState.agentConfig!.agentId}] Lock Status: GRANTED for room ${roomId}. Starting LLM generation...`,
+        );
+        return resolve(true);
+      }
+
+      // Lock denied or timed out, wait before retrying to avoid spamming the broker
+      console.log(
+        `[Inference Node - ${currentState.agentConfig!.agentId}] Retrying lock in 3s...`,
+      );
+      await new Promise((res) => setTimeout(res, 3000));
+    }
   });
 }
