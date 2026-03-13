@@ -1,7 +1,5 @@
 @import "./animation.scss";
 
-$pixel-font: 'VT323', 'Courier New', monospace;
-
 @mixin light {
   --color-fg-default: #361304;
   --color-fg-muted: #52210b;
@@ -28,7 +26,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 }
 
 .markdown-body {
-  font-family: $pixel-font !important;
+  font-family: var(--pixel-font) !important;
   -webkit-font-smoothing: none;
   font-smooth: never;
   color: var(--color-fg-default);
@@ -38,7 +36,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   word-wrap: break-word;
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     font-weight: bold;
     color: var(--black);
     border-bottom: 2px solid var(--color-border-default);
@@ -87,7 +85,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   }
 
   code {
-    font-family: $pixel-font !important;
+    font-family: var(--pixel-font) !important;
     padding: 0.2em 0.4em;
     background-color: var(--color-neutral-muted);
     border-radius: 0;

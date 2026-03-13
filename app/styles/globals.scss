@@ -1,9 +1,6 @@
 @import "./animation.scss";
 @import "./window.scss";
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
-$pixel-font: 'VT323', 'Courier New', monospace;
-
+@import url('https://fonts.googleapis.com/css2?family=Jersey+15&display=swap');
 @mixin light {
   --theme: light;
 
@@ -28,18 +25,22 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 @mixin dark {
   --theme: dark;
   
-  --white: #ebc692; 
-  --black: #240c00; 
-  --gray: #6b3e1b; 
-  --light-gray: #542d13;
-  --primary: #8a4115; 
-  --second: #d6af7a; 
-  --hover-color: #fce8c5;
-  --bar-color: #381505;
-  --mlc-icon-color: #240c00;
+  /* INVERTED CONTRAST: Backgrounds are now dark, text is now light */
+  --white: #2b1c13; /* Deep mahogany for chat bubbles and modals */
+  --black: #f5d6a7; /* Parchment color for text so it glows against the dark */
+  
+  --gray: #180e09; /* Very dark charred wood for the main app background */
+  --light-gray: #3d281c;
+  
+  --primary: #b55c27; /* A slightly brighter burnt orange for buttons to maintain contrast */
+  --second: #3d261a; /* Darker secondary background for user chat bubbles/hovers */
+  --hover-color: #4f3222;
+  
+  --bar-color: #140803; /* Almost black for borders and scrollbars */
+  --mlc-icon-color: #f5d6a7; /* Icons match the text color */
 
-  --border-in-light: 4px solid #381505;
-  --border-in-dark: 4px solid #381505;
+  --border-in-light: 4px solid #140803;
+  --border-in-dark: 4px solid #140803;
 
   --theme-color: var(--gray);
 
@@ -62,6 +63,8 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 
 :root {
   @include light;
+
+  --pixel-font: 'Jersey 15', 'Courier New', monospace;
 
   --window-width: 90vw;
   --window-height: 90vh;
@@ -92,16 +95,14 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 }
 
 * {
-  font-family: 'VT323', 'Courier New', monospace !important;
-  font-weight: 400 !important; /* Pixel fonts typically only support normal weight */
+  font-family: var(--pixel-font) !important;
+  font-weight: 400 !important; 
   
-  /* SHARP PIXEL FIX: Disables browser blurring/smoothing */
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
   font-smooth: never;
   text-rendering: optimizeSpeed;
 
-  /* SHARP IMAGE FIX: Ensures icons stay blocky and crisp */
   image-rendering: pixelated; 
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
@@ -316,7 +317,7 @@ pre {
     top: 1em;
     cursor: pointer;
     padding: 2px 8px;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     background-color: var(--primary);
     color: var(--white);
     border: 2px solid var(--white);
@@ -408,4 +409,3 @@ pre {
 .copyable {
   user-select: text;
 }
-

@@ -1,9 +1,7 @@
 @import "../styles/animation.scss";
 
-$pixel-font: 'VT323', 'Courier New', monospace;
-
 .message-exporter {
-  &-body {
+&-body {
     margin-top: 20px;
   }
 }
@@ -11,7 +9,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 .export-content {
   white-space: break-spaces;
   padding: 10px !important;
-  font-family: $pixel-font;
+  font-family: var(--pixel-font);
 }
 
 /* PROGRESS BAR / STEPS SECTION */
@@ -51,7 +49,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     .step {
       flex-grow: 1;
       padding: 8px 12px;
-      font-family: $pixel-font;
+      font-family: var(--pixel-font);
       font-size: 18px; /* Increased from 14px */
       color: var(--black);
       opacity: 0.6;
@@ -97,18 +95,18 @@ $pixel-font: 'VT323', 'Courier New', monospace;
       position: relative;
 
       .main-title {
-        font-family: $pixel-font;
+        font-family: var(--pixel-font);
         font-size: 26px; /* Increased from 20px */
         font-weight: bolder;
       }
 
       .sub-title {
-        font-family: $pixel-font;
+        font-family: var(--pixel-font);
         font-size: 16px;
       }
 
       .chat-info-item {
-        font-family: $pixel-font;
+        font-family: var(--pixel-font);
         font-size: 16px;
         border-radius: 0;
         background-color: var(--white);
@@ -135,7 +133,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
         max-width: calc(100% - 104px);
         box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
         border: var(--border-in-light);
-        font-family: $pixel-font;
+        font-family: var(--pixel-font);
         font-size: 20px;
 
         .message-image,

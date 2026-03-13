@@ -1,12 +1,10 @@
-$pixel-font: 'VT323', 'Courier New', monospace;
-
 .window-header {
   padding: 5px 20px;
   
   border-bottom: var(--border-in-light); 
   background-color: var(--white);
   position: relative;
-  
+
   box-shadow: 0px 4px 0px rgba(0, 0, 0, 0.1); 
   z-index: 10; 
 
@@ -20,7 +18,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   overflow: hidden;
 
   .window-header-main-title {
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     font-size: 32px;
     font-weight: bold;
     color: var(--black);
@@ -34,7 +32,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   }
 
   .window-header-sub-title {
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     font-size: 20px;
     color: var(--black);
     opacity: 0.7;

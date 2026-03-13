@@ -1,5 +1,3 @@
-$pixel-font: 'VT323', 'Courier New', monospace;
-
 .settings {
   padding: 20px;
   overflow: auto;
@@ -33,7 +31,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     max-width: unset;
     margin-bottom: 20px;
     text-align: left;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     font-size: 26px;
     font-weight: bold;
     color: var(--black);
@@ -41,7 +39,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   
   .edit-prompt-content {
     max-width: unset;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     font-size: 20px;
     color: var(--black);
   }
@@ -58,7 +56,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     border: var(--border-in-light);
     border-radius: 0;
     box-shadow: inset 4px 4px 0px rgba(0, 0, 0, 0.15), inset -4px -4px 0px rgba(255, 255, 255, 0.6);
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     font-size: 20px;
     color: var(--black);
     padding: 10px 14px;
@@ -93,7 +91,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
         max-width: calc(100% - 100px);
 
         .user-prompt-title {
-          font-family: $pixel-font;
+          font-family: var(--pixel-font);
           font-size: 22px;
           line-height: 1.2;
           font-weight: bold;
@@ -102,7 +100,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
         }
         
         .user-prompt-content {
-          font-family: $pixel-font;
+          font-family: var(--pixel-font);
           font-size: 18px;
           color: var(--black);
           opacity: 0.8;

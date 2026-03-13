@@ -1,7 +1,5 @@
 @import "../styles/animation.scss";
 
-$pixel-font: 'VT323', 'Courier New', monospace;
-
 .card {
   background-color: var(--white);
   border-radius: 0;
@@ -67,7 +65,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   z-index: 3;
   white-space: nowrap;
   font-size: 16px;
-  font-family: $pixel-font;
+  font-family: var(--pixel-font);
   text-align: center;
 
   &.tooltip-content-left {
@@ -128,7 +126,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
       font-weight: bolder;
       color: var(--black);
       margin-bottom: 4px;
-      font-family: $pixel-font;
+      font-family: var(--pixel-font);
     }
 
     .list-item-sub-title {
@@ -136,7 +134,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
       font-weight: normal;
       color: var(--black);
       opacity: 0.8;
-      font-family: $pixel-font;
+      font-family: var(--pixel-font);
     }
   }
 }
@@ -191,7 +189,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     .modal-title {
       font-weight: bolder;
       font-size: 24px;
-      font-family: $pixel-font;
+      font-family: var(--pixel-font);
     }
 
     .modal-header-actions {
@@ -280,7 +278,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     max-width: 80vw;
     word-break: break-all;
     font-size: 20px;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     background-color: var(--white);
     box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.3);
     border: var(--border-in-light);
@@ -335,7 +333,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     background-color: var(--white);
     color: var(--black);
     text-align: center;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     font-size: 20px;
     box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
   }
@@ -357,7 +355,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.1);
   background-color: var(--white);
   color: var(--black);
-  font-family: $pixel-font;
+  font-family: var(--pixel-font);
   font-size: 20px;
   padding: 12px;
   resize: none;

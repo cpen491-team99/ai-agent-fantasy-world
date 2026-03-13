@@ -1,8 +1,6 @@
 @import "../styles/animation.scss";
 @import "../styles/window.scss";
 
-$pixel-font: 'VT323', 'Courier New', monospace;
-
 .attach-images {
   position: absolute;
   left: 30px;
@@ -63,7 +61,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     display: inline-flex;
     border-radius: 0;
     font-size: 16px;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     background-color: var(--white);
     color: var(--black);
     border: var(--border-in-light);
@@ -141,7 +139,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     justify-content: center;
     align-items: center;
     font-size: 16px;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     background-color: var(--white);
     color: var(--black);
     border: var(--border-in-light);
@@ -158,8 +156,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 
 .section-title {
   font-size: 18px;
-  font-family: $pixel-font;
-  font-weight: bold;
+  font-family: var(--pixel-font);
   margin-bottom: 10px;
   display: flex;
   justify-content: space-between;
@@ -181,7 +178,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     border-radius: 0;
     padding: 10px;
     font-size: 16px;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     user-select: text;
   }
 }
@@ -195,7 +192,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   justify-content: center;
   align-items: center;
   color: var(--black);
-  font-family: $pixel-font;
+  font-family: var(--pixel-font);
   transition: all ease 0.3s;
   cursor: pointer;
   overflow: hidden;
@@ -262,7 +259,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 
 .chat-body-main-title {
   cursor: default;
-  font-family: $pixel-font;
+  font-family: var(--pixel-font);
   font-size: 26px;
   color: var(--black);
   text-shadow: 1px 1px 0px var(--white);
@@ -384,10 +381,9 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     .chat-message-role-name {
       position: relative !important;
       transform: none !important;
-      font-family: $pixel-font;
+      font-family: var(--pixel-font);
       font-size: 16px;
-      font-weight: bold;
-      background-color: var(--white);
+          background-color: var(--white);
       border: 2px solid var(--black);
       padding: 1px 6px;
       color: var(--black);
@@ -403,13 +399,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   background-color: var(--white);
   border: var(--border-in-light);
   padding: 12px 16px;
-  font-family: $pixel-font;
-  
-  /* Inherits variable from React, falls back to 20px */
-  font-size: var(--chat-font-size, 20px) !important;
-  font-weight: bold !important;
-  line-height: 1.1;
-  color: var(--black) !important;
+  font-family: var(--pixel-font);
   border-radius: 0;
 
   word-break: break-word;
@@ -419,15 +409,10 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   user-select: text !important;
   cursor: text;
 
-  * {
-    user-select: text !important;
-  }
-
   p, span, div, h1, h2, h3, h4, h5, h6, li, a, strong, em, b, i {
-    font-size: inherit !important;
-    line-height: 1.1 !important;
+    line-height: 1.2 !important;
     color: var(--black) !important;
-    font-weight: bold !important;
+    user-select: text !important;
   }
 }
 
@@ -437,7 +422,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 
 .chat-message-action-date {
   font-size: 18px;
-  font-family: $pixel-font;
+  font-family: var(--pixel-font);
   white-space: nowrap;
   transition: all ease 0.6s;
   color: var(--black);
@@ -531,7 +516,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
 
   .prompt-hint {
     color: var(--black);
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
     padding: 6px 10px;
     animation: slide-in ease 0.3s;
     cursor: pointer;
@@ -600,8 +585,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
   box-shadow: inset 4px 4px 0px rgba(0, 0, 0, 0.15), inset -4px -4px 0px rgba(255, 255, 255, 0.6);
   background-color: var(--white);
   color: var(--black) !important;
-  font-family: $pixel-font;
-  font-weight: bold !important;
+  font-family: var(--pixel-font);
   letter-spacing: 0.5px;
   padding: 12px 90px 12px 14px;
   resize: none;
@@ -655,7 +639,7 @@ $pixel-font: 'VT323', 'Courier New', monospace;
     align-items: center;
     cursor: pointer;
     pointer-events: all;
-    font-family: $pixel-font;
+    font-family: var(--pixel-font);
 
     &:hover {
       background-color: var(--second);
