@@ -276,6 +276,27 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
+/* Make a landing preview card clickable (used for About Honeyveil) */
+.landing-preview-content-clickable {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  appearance: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+}
+
+.landing-preview-content-clickable:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.35);
+  outline-offset: 4px;
+}
+
+.landing-preview-content-clickable:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+
 .landing-preview-text {
   text-align: left;
 }
@@ -325,6 +346,23 @@
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* JPG placeholder block (until you add a real image) */
+.landing-preview-image-placeholder {
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.12) 0%,
+    rgba(168, 85, 247, 0.1) 100%
+  );
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 /* Footer */
@@ -420,6 +458,16 @@
     background: rgba(30, 30, 30, 0.7);
     border-color: rgba(255, 255, 255, 0.06);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .landing-preview-content-clickable:focus-visible {
+    outline-color: rgba(99, 102, 241, 0.45);
+  }
+
+  .landing-preview-image-placeholder {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #94a3b8;
   }
 
   .landing-preview-title {

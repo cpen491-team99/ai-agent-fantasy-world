@@ -3,8 +3,8 @@
 import React, { useRef, useEffect } from "react";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
-import { useAppDispatch, useAppSelector } from "./redux/hooks"; // adjust path
-import { setRooms, addMessage } from "./redux/chatroomsSlice"; // adjust path
+import { useAppDispatch, useAppSelector } from "./redux/hooks";
+import { setRooms, addMessage } from "./redux/chatroomsSlice";
 import { createMessage } from "./store/chat";
 import { getMqttClient } from "./client/mqtt";
 import { v4 as uuidv4 } from "uuid";
@@ -16,15 +16,24 @@ function MqttBootstrap() {
   const currentUserAgentId = useAppSelector(
     (state) => state.chatrooms.currentUserAgentId,
   );
-  // const startedRef = useRef(false);
 
   useEffect(() => {
-    // if (startedRef.current) return;
-    // startedRef.current = true;
     const agentId = currentUserAgentId;
     const username = "test_user";
     const clientId = uuid;
-    const port = process.env.NEXT_PUBLIC_MQTT_FRONTEND_PORT_NUMBER || "9001";
+
+    let port = "9001";
+    try {
+      if (
+        typeof process !== "undefined" &&
+        process.env?.NEXT_PUBLIC_MQTT_FRONTEND_PORT_NUMBER
+      ) {
+        port = process.env.NEXT_PUBLIC_MQTT_FRONTEND_PORT_NUMBER;
+      }
+    } catch (e) {
+      console.warn("Env var missing, using default port 9001");
+    }
+
     const brokerUrl = `ws://127.0.0.1:${port}`;
 
     const client = getMqttClient();
@@ -33,10 +42,6 @@ function MqttBootstrap() {
       onConnect: () => console.log("[MQTT] connected"),
       onError: (err) => console.error("[MQTT] error", err),
 
-      // onRoomsState: (data) => {
-      //   const rooms = Array.isArray(data) ? data : data?.rooms;
-      //   if (Array.isArray(rooms)) dispatch(setRooms(rooms));
-      // },
       onRoomsState: (data) => {
         const roomsRaw = Array.isArray(data) ? data : data?.rooms;
         if (!Array.isArray(roomsRaw)) return;
@@ -64,7 +69,6 @@ function MqttBootstrap() {
           addMessage({
             roomId: msg.roomId,
             message: createMessage({
-              // role: "assistant",
               role: senderIsMe ? "user" : "assistant",
               content: msg.msg,
               model: msg.fromAgentId,
@@ -89,6 +93,7 @@ function MqttBootstrap() {
 
   return null;
 }
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>

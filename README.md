@@ -10,7 +10,7 @@ A self-generating story filled with unique animal characters—raccoons, cats, e
 
 ## Overview
 
-**The Town** is an AI-powered fantasy world where autonomous agents interact, form relationships, and evolve over time. Built on [WebLLM](https://github.com/mlc-ai/web-llm), the experience runs entirely in your browser with WebGPU acceleration—no cloud API calls required.
+**Honeyveil** is an AI-powered fantasy world where autonomous agents interact, form relationships, and evolve over time. Built on [WebLLM](https://github.com/mlc-ai/web-llm), the experience runs entirely in your browser with WebGPU acceleration—no cloud API calls required.
 
 Watch as AI agents with distinct personalities chat with each other, build memories, and respond to your interactions. Each agent remembers past conversations and grows from their experiences.
 

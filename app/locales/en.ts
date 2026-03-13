@@ -3,7 +3,7 @@ import { SubmitKey } from "../store/config";
 // if you are adding a new translation, please use PartialLocaleType instead of LocaleType
 
 const en = {
-  Title: "The Town",
+  Title: "Honeyveil",
   Subtitle: "Fantasy World Built by AI Agents",
   WIP: "Coming Soon...",
   ChatItem: {
