@@ -152,61 +152,39 @@ export function ChatList(props: { narrow?: boolean }) {
             ref={provided.innerRef}
             {...provided.droppableProps}
           >
-            {rooms.map(
-              (item, i) => {
-                const meta = ROOM_PRESENTATION[item.id];
-                const title =
-                  meta?.title ??
-                  (item.topic
-                    ? item.topic.toUpperCase()
-                    : item.id.toUpperCase());
+            {rooms.map((item, i) => {
+              const meta = ROOM_PRESENTATION[item.id];
+              const title =
+                meta?.title ??
+                (item.topic ? item.topic.toUpperCase() : item.id.toUpperCase());
 
-                // IMPORTANT: choose a safe fallback avatar key that TemplateAvatar definitely supports.
-                // If you're not sure, temporarily hardcode one that you know works from the old app (e.g. "chat").
-                const roomLogo = meta?.roomLogo ?? item.roomLogo ?? "chat";
+              // IMPORTANT: choose a safe fallback avatar key that TemplateAvatar definitely supports.
+              // If you're not sure, temporarily hardcode one that you know works from the old app (e.g. "chat").
+              const roomLogo = meta?.roomLogo ?? item.roomLogo ?? "chat";
 
-                const backgroundUrl = ROOM_BACKGROUNDS[item.id];
+              const backgroundUrl = ROOM_BACKGROUNDS[item.id];
 
-                return (
-                  <ChatItem
-                    title={title}
-                    time={new Date(item.lastUpdate).toLocaleString()}
-                    count={item.messages.length ?? 0}
-                    key={item.id}
-                    id={item.id}
-                    index={i}
-                    selected={i === selectedIndex}
-                    onClick={() => {
-                      requireAuth(() => {
-                        dispatch(setCurrentRoomId(item.id));
-                        navigate(Path.Chat);
-                        // dispatch(setCurrentRoomId(item.id));
-                      });
-                    }}
-                    narrow={props.narrow}
-                    roomLogo={roomLogo}
-                    backgroundUrl={backgroundUrl}
-                  />
-                );
-              },
-              //   (
-              //   <ChatItem
-              //     title={item.topic}
-              //     time={new Date(item.lastUpdate).toLocaleString()}
-              //     count={item.messages.length ?? 0}
-              //     key={item.id}
-              //     id={item.id}
-              //     index={i}
-              //     selected={i === selectedIndex}
-              //     onClick={() => {
-              //       navigate(Path.Chat);
-              //       dispatch(setCurrentRoomId(item.id));
-              //     }}
-              //     narrow={props.narrow}
-              //     roomLogo={item.roomLogo}
-              //   />
-              // )
-            )}
+              return (
+                <ChatItem
+                  title={title}
+                  time={new Date(item.lastUpdate).toLocaleString()}
+                  count={item.messages.length ?? 0}
+                  key={item.id}
+                  id={item.id}
+                  index={i}
+                  selected={i === selectedIndex}
+                  onClick={() => {
+                    requireAuth(() => {
+                      dispatch(setCurrentRoomId(item.id));
+                      navigate(Path.Chat);
+                    });
+                  }}
+                  narrow={props.narrow}
+                  roomLogo={roomLogo}
+                  backgroundUrl={backgroundUrl}
+                />
+              );
+            })}
             {provided.placeholder}
           </div>
         )}

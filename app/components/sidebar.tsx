@@ -175,11 +175,7 @@ export function SideBar(props: { className?: string }) {
   const chatroomsState = useAppSelector((state) => state.chatrooms);
   const auth = useAppSelector((state) => state.auth);
   const { requireAuth } = useRequireAuth();
-  // const currentUserAgentId = useAppSelector(
-  //   (state) => state.chatrooms.currentUserAgentId,
-  // );
   const [showReduxState, setShowReduxState] = useState(false);
-  // const [showAgentMenu, setShowAgentMenu] = useState(false);
 
   //User agent selection button
   const activeUserAgent = auth.activeUserAgent;
@@ -205,15 +201,6 @@ export function SideBar(props: { className?: string }) {
     const nextTheme = themes[nextIndex];
     config.update((config) => (config.theme = nextTheme));
   }
-
-  // Sample user myAgent selection menu. For the future, Each user will have their own unique lists of agents to choose from.
-  // const agentOptions = [
-  //   { id: "raccoon", label: "Raccoon" },
-  //   { id: "fox", label: "Fox" },
-  //   { id: "bunny", label: "Bunny" },
-  //   { id: "cat", label: "Cat" },
-  //   { id: "dog", label: "Dog" },
-  // ];
 
   return (
     <div
@@ -320,7 +307,6 @@ export function SideBar(props: { className?: string }) {
           <div className={styles["sidebar-action"]}>
             <IconButton
               icon={<GoogleIcon />}
-              // text={shouldNarrow ? undefined : auth.isLoggedIn ? auth.name ?? "User" : "Login"}
               onClick={() => {
                 if (auth.isLoggedIn) {
                   dispatch(openLogoutModal());
@@ -365,57 +351,7 @@ export function SideBar(props: { className?: string }) {
               }
             />
           </div>
-          {/* <div className={styles["sidebar-action"]}>
-            <div className={styles["agent-selector"]}>
-              <IconButton
-                icon={<PawIcon />}
-                onClick={() => setShowAgentMenu((v) => !v)}
-                shadow
-              />
-              {showAgentMenu && (
-                <div className={styles["agent-menu"]}>
-                  {agentOptions.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className={
-                        styles["agent-menu-item"] +
-                        (opt.id === currentUserAgentId
-                          ? " " + styles["agent-menu-item-active"]
-                          : "")
-                      }
-                      onClick={() => {
-                        dispatch(setCurrentUserAgentId(opt.id));
-                        setShowAgentMenu(false);
-                        showToast?.(`Switched agent to ${opt.label}`);
-                      }}
-                    >
-                      <img
-                        src={getAgentAvatar(opt.id)}
-                        alt={opt.label}
-                        className={styles["agent-menu-avatar"]}
-                      />
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div> */}
         </div>
-        {/* <div>
-          <IconButton
-            icon={<AddIcon />}
-            text={shouldNarrow ? undefined : Locale.Home.NewChat}
-            onClick={() => {
-              if (rooms[0]) {
-                dispatch(setCurrentRoomId(rooms[0].id));
-              }
-              navigate(Path.Chat);
-            }}
-            shadow
-          />
-        </div> */}
       </div>
 
       <div
