@@ -157,9 +157,6 @@ export function SideBar(props: { className?: string }) {
   );
   const [showReduxState, setShowReduxState] = useState(false);
 
-  //Legacy agent selectuion feature
-  const [showAgentMenu, setShowAgentMenu] = useState(false);
-
   // drag side bar
   const { onDragStart, shouldNarrow } = useDragSideBar();
   const navigate = useNavigate();
@@ -289,57 +286,7 @@ export function SideBar(props: { className?: string }) {
               shadow
             />
           </div>
-          {/* <div className={styles["sidebar-action"]}>
-            <div className={styles["agent-selector"]}>
-              <IconButton
-                icon={<PawIcon />}
-                onClick={() => setShowAgentMenu((v) => !v)}
-                shadow
-              />
-              {showAgentMenu && (
-                <div className={styles["agent-menu"]}>
-                  {agentOptions.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      className={
-                        styles["agent-menu-item"] +
-                        (opt.id === currentUserAgentId
-                          ? " " + styles["agent-menu-item-active"]
-                          : "")
-                      }
-                      onClick={() => {
-                        dispatch(setCurrentUserAgentId(opt.id));
-                        setShowAgentMenu(false);
-                        showToast?.(`Switched agent to ${opt.label}`);
-                      }}
-                    >
-                      <img
-                        src={getAgentAvatar(opt.id)}
-                        alt={opt.label}
-                        className={styles["agent-menu-avatar"]}
-                      />
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div> */}
         </div>
-        {/* <div>
-          <IconButton
-            icon={<AddIcon />}
-            text={shouldNarrow ? undefined : Locale.Home.NewChat}
-            onClick={() => {
-              if (rooms[0]) {
-                dispatch(setCurrentRoomId(rooms[0].id));
-              }
-              navigate(Path.Chat);
-            }}
-            shadow
-          />
-        </div> */}
       </div>
 
       <div
