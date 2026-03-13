@@ -36,7 +36,6 @@ export type SenderHistoryResponse = {
   error?: string;
 };
 
-// Fixed: Added agentId optional field
 export type MemoryFindResponse = {
   requestId: string;
   textQuery?: string;
@@ -242,7 +241,6 @@ export class FrontendMqttClient {
       }
 
       // agents/<agentId>/memory/find/response/<requestId>
-      // Fixed: Regex now captures agentId from the topic
       const mMem = topic.match(
         /^agents\/([^/]+)\/memory\/find\/response\/([^/]+)$/,
       );
@@ -250,7 +248,7 @@ export class FrontendMqttClient {
         const topicAgentId = mMem[1];
         try {
           const data = JSON.parse(text) as MemoryFindResponse;
-          // Fixed: Inject agentId into data object
+          // Make sure json data contains agentID
           (data as any).agentId = topicAgentId;
 
           console.log("[MQTT] memory find response topic matched", {
@@ -315,7 +313,6 @@ export class FrontendMqttClient {
   subscribeBase() {
     if (!this.client) return;
 
-    // Fixed: Added wildcard subscription for ALL agents memory responses
     this.client.subscribe(
       [
         "rooms/state",
@@ -529,7 +526,7 @@ export class FrontendMqttClient {
     return requestId;
   }
 
-  // Fixed: Added method to request SPECIFIC agent memory
+  // Method to request memories for specific agent
   requestAgentMemoryFind(textQuery: string, targetAgentID: string) {
     if (!this.opts) throw new Error("MQTT client not connected yet");
     const requestId = `${targetAgentID}-${Date.now()}`;
