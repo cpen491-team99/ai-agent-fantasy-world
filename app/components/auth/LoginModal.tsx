@@ -6,6 +6,7 @@ import {
   closeLoginModal,
   loginSuccess,
   setLoginStatus,
+  openAgentSelectionModal,
 } from "@/app/redux/authSlice";
 import GoogleLoginButton from "@/app/components/auth/GoogleLoginButton";
 
@@ -70,8 +71,13 @@ export default function LoginModal({ onCredential }: Props) {
           email: data.email,
           picture: data.picture ?? null,
           lastLoginAt: data.lastLoginAt ?? null,
+          activeUserAgent: data.activeUserAgent ?? null,
         }),
       );
+
+      if (!data.activeUserAgent) {
+        dispatch(openAgentSelectionModal());
+      }
       console.log("[LOGIN] Redux login success:", data);
     } catch (err: any) {
       console.error("Login failed:", err);

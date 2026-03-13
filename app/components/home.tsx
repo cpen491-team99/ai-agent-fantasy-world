@@ -32,6 +32,7 @@ import { MlcLLMApi } from "../client/mlcllm";
 import { Provider } from "react-redux";
 import LoginModal from "@/app/components/auth/LoginModal";
 import LogoutModal from "@/app/components/auth/LogoutModal";
+import AgentSelectionModal from "@/app/components/auth/AgentSelectionModal";
 
 export function Loading(props: { noLogo?: boolean }) {
   return (
@@ -171,6 +172,7 @@ function Screen() {
 
         <LoginModal />
         <LogoutModal />
+        <AgentSelectionModal />
       </>
     </div>
   );

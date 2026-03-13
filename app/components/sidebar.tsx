@@ -16,7 +16,11 @@ import GoogleIcon from "../icons/google.svg";
 
 import Locale from "../locales";
 
-import { openLogoutModal, openLoginModal, logout } from "../redux/authSlice";
+import {
+  openLogoutModal,
+  openLoginModal,
+  openAgentSelectionModal,
+} from "../redux/authSlice";
 import { useRequireAuth } from "./auth/useRequireAuth";
 
 import { Theme, useAppConfig } from "../store";
@@ -41,6 +45,19 @@ import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 import { showToast } from "./ui-lib";
 import { getAgentAvatar } from "../utils/agent-avatar";
+
+import FoxImg from "../assets/agents/fox.png";
+import BunnyImg from "../assets/agents/bunny.png";
+import RaccoonImg from "../assets/agents/raccoon.png";
+import MouseImg from "../assets/agents/mouse.png";
+import DefaultImg from "../assets/agents/default.png";
+
+const AGENT_IMAGE_MAP: Record<string, string> = {
+  "fox.png": FoxImg.src,
+  "bunny.png": BunnyImg.src,
+  "raccoon.png": RaccoonImg.src,
+  "mouse.png": MouseImg.src,
+};
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -158,11 +175,16 @@ export function SideBar(props: { className?: string }) {
   const chatroomsState = useAppSelector((state) => state.chatrooms);
   const auth = useAppSelector((state) => state.auth);
   const { requireAuth } = useRequireAuth();
-  const currentUserAgentId = useAppSelector(
-    (state) => state.chatrooms.currentUserAgentId,
-  );
+  // const currentUserAgentId = useAppSelector(
+  //   (state) => state.chatrooms.currentUserAgentId,
+  // );
   const [showReduxState, setShowReduxState] = useState(false);
-  const [showAgentMenu, setShowAgentMenu] = useState(false);
+  // const [showAgentMenu, setShowAgentMenu] = useState(false);
+
+  //User agent selection button
+  const activeUserAgent = auth.activeUserAgent;
+  const activeAgentImage =
+    AGENT_IMAGE_MAP[activeUserAgent?.imageId ?? ""] ?? DefaultImg.src;
 
   // drag side bar
   const { onDragStart, shouldNarrow } = useDragSideBar();
@@ -185,13 +207,13 @@ export function SideBar(props: { className?: string }) {
   }
 
   // Sample user myAgent selection menu. For the future, Each user will have their own unique lists of agents to choose from.
-  const agentOptions = [
-    { id: "raccoon", label: "Raccoon" },
-    { id: "fox", label: "Fox" },
-    { id: "bunny", label: "Bunny" },
-    { id: "cat", label: "Cat" },
-    { id: "dog", label: "Dog" },
-  ];
+  // const agentOptions = [
+  //   { id: "raccoon", label: "Raccoon" },
+  //   { id: "fox", label: "Fox" },
+  //   { id: "bunny", label: "Bunny" },
+  //   { id: "cat", label: "Cat" },
+  //   { id: "dog", label: "Dog" },
+  // ];
 
   return (
     <div
@@ -311,6 +333,39 @@ export function SideBar(props: { className?: string }) {
             />
           </div>
           <div className={styles["sidebar-action"]}>
+            <IconButton
+              icon={
+                activeUserAgent ? (
+                  <img
+                    src={activeAgentImage}
+                    alt={activeUserAgent.name}
+                    className={styles["agent-icon-image"]}
+                  />
+                ) : (
+                  <PawIcon />
+                )
+              }
+              onClick={() => {
+                if (!auth.isLoggedIn) {
+                  dispatch(openLoginModal());
+                  return;
+                }
+
+                if (!activeUserAgent) {
+                  dispatch(openAgentSelectionModal());
+                }
+              }}
+              shadow
+              title={
+                !auth.isLoggedIn
+                  ? "Login to choose an agent"
+                  : activeUserAgent
+                    ? activeUserAgent.name
+                    : "Choose Agent"
+              }
+            />
+          </div>
+          {/* <div className={styles["sidebar-action"]}>
             <div className={styles["agent-selector"]}>
               <IconButton
                 icon={<PawIcon />}
@@ -346,7 +401,7 @@ export function SideBar(props: { className?: string }) {
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
         </div>
         {/* <div>
           <IconButton

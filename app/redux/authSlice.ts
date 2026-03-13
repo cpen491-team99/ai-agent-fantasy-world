@@ -1,5 +1,16 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+export type ActiveUserAgent = {
+  id: string;
+  ownerUserId: string;
+  templateId: string;
+  name: string;
+  imageId: string;
+  prompt: string;
+  description: string;
+  isActive: boolean;
+};
+
 export type AuthState = {
   isLoggedIn: boolean;
   showLoginModal: boolean;
@@ -12,6 +23,8 @@ export type AuthState = {
   picture: string | null;
   lastLoginAt: string | null;
   showLogoutModal: boolean;
+  showAgentSelectionModal: boolean;
+  activeUserAgent: ActiveUserAgent | null;
 };
 
 const initialState: AuthState = {
@@ -26,6 +39,8 @@ const initialState: AuthState = {
   picture: null,
   lastLoginAt: null,
   showLogoutModal: false,
+  showAgentSelectionModal: false,
+  activeUserAgent: null,
 };
 
 const authSlice = createSlice({
@@ -47,6 +62,12 @@ const authSlice = createSlice({
     closeLogoutModal(state) {
       state.showLogoutModal = false;
     },
+    openAgentSelectionModal(state) {
+      state.showAgentSelectionModal = true;
+    },
+    closeAgentSelectionModal(state) {
+      state.showAgentSelectionModal = false;
+    },
     loginSuccess(
       state,
       action: PayloadAction<{
@@ -57,6 +78,7 @@ const authSlice = createSlice({
         email: string;
         picture?: string | null;
         lastLoginAt?: string | null;
+        activeUserAgent?: ActiveUserAgent | null;
       }>,
     ) {
       state.isLoggedIn = true;
@@ -69,6 +91,11 @@ const authSlice = createSlice({
       state.email = action.payload.email;
       state.picture = action.payload.picture ?? null;
       state.lastLoginAt = action.payload.lastLoginAt ?? null;
+      state.activeUserAgent = action.payload.activeUserAgent ?? null;
+    },
+    setActiveUserAgent(state, action: PayloadAction<ActiveUserAgent | null>) {
+      state.activeUserAgent = action.payload;
+      state.agentId = action.payload?.id ?? null;
     },
     logout(state) {
       state.isLoggedIn = false;
@@ -82,6 +109,8 @@ const authSlice = createSlice({
       state.email = null;
       state.picture = null;
       state.lastLoginAt = null;
+      state.showAgentSelectionModal = false;
+      state.activeUserAgent = null;
     },
   },
 });
@@ -91,8 +120,11 @@ export const {
   closeLoginModal,
   openLogoutModal,
   closeLogoutModal,
+  openAgentSelectionModal,
+  closeAgentSelectionModal,
   setLoginStatus,
   loginSuccess,
+  setActiveUserAgent,
   logout,
 } = authSlice.actions;
 
