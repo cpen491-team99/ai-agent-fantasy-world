@@ -16,25 +16,28 @@ import { Path } from "../constant";
 import { TemplateAvatar } from "./template";
 import { useRef, useEffect } from "react";
 
-//Rooms Bg
-import LibraryBg from "../assets/rooms/library.jpg";
-import CafeBg from "../assets/rooms/cafe.jpg";
-import ParkBg from "../assets/rooms/park.jpg";
-import SportsBg from "../assets/rooms/sports-court.jpg";
+//Rooms Bg Change
+import PalaceBg from "../assets/rooms/palace.jpg";
+import SquareBg from "../assets/rooms/square.jpg";
+import WoodsBg from "../assets/rooms/woods.jpg";
+import PubBg from "../assets/rooms/pub.jpg";
 
-const ROOM_PRESENTATION: Record<string, { title: string; roomLogo: string }> = {
-  library: { title: "Library", roomLogo: "1f680" },
-  cafe: { title: "Cafe", roomLogo: "1f4a1" },
-  park: { title: "Park", roomLogo: "1f3de-fe0f" },
-  "sports-court": { title: "Sports Court", roomLogo: "26bd" },
+export const ROOM_PRESENTATION: Record<
+  string,
+  { title: string; roomLogo: string }
+> = {
+  palace: { title: "Seralith's Palace", roomLogo: "1f680" },
+  square: { title: "Bergamont Square", roomLogo: "1f4a1" },
+  woods: { title: "Redberry Woods", roomLogo: "1f3de-fe0f" },
+  pub: { title: "Toad & Tankard", roomLogo: "26bd" },
 };
 
 // Place the actual image files under /public/rooms/<id>.jpg or adjust paths.
 const ROOM_BACKGROUNDS: Record<string, string> = {
-  library: LibraryBg.src,
-  cafe: CafeBg.src,
-  park: ParkBg.src,
-  "sports-court": SportsBg.src,
+  palace: PalaceBg.src,
+  square: SquareBg.src,
+  woods: WoodsBg.src,
+  pub: PubBg.src,
 };
 
 export function ChatItem(props: {
