@@ -20,8 +20,12 @@ export enum SubmitKey {
 
 export enum Theme {
   Auto = "auto",
-  Dark = "dark",
   Light = "light",
+  Midnight = "midnight",
+  Forest = "forest",
+  Cyberpunk = "cyberpunk",
+  Gameboy = "gameboy",
+  Vampire = "vampire",
 }
 
 export enum CacheType {

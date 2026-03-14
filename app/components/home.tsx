@@ -24,12 +24,11 @@ import { DEFAULT_MODELS, Path, SlotID } from "../constant";
 import { ErrorBoundary } from "./error";
 import { getISOLang, getLang } from "../locales";
 import { SideBar } from "./sidebar";
-import { useAppConfig } from "../store/config";
+import { Theme, useAppConfig } from "../store/config";
 import { WebLLMApi } from "../client/webllm";
 import { ModelClient, useChatStore } from "../store";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { MlcLLMApi } from "../client/mlcllm";
-import { Provider } from "react-redux";
 
 export function Loading(props: { noLogo?: boolean }) {
   return (
@@ -60,13 +59,6 @@ const Chat = dynamic(async () => (await import("./chat")).Chat, {
   loading: () => <Loading noLogo />,
 });
 
-const TemplatePage = dynamic(
-  async () => (await import("./template")).TemplatePage,
-  {
-    loading: () => <Loading noLogo />,
-  },
-);
-
 const Landing = dynamic(async () => (await import("./landing")).LandingPage, {
   loading: () => <Loading noLogo />,
 });
@@ -79,29 +71,36 @@ export function useSwitchTheme() {
   const config = useAppConfig();
 
   useEffect(() => {
-    document.body.classList.remove("light");
-    document.body.classList.remove("dark");
+    // 1. Remove all possible theme classes to avoid "class soup"
+    const allThemes = [
+      "light",
+      "midnight",
+      "forest",
+      "cyberpunk",
+      "gameboy",
+      "vampire",
+      "auto",
+    ];
+    document.body.classList.remove(...allThemes);
 
-    if (config.theme === "dark") {
-      document.body.classList.add("dark");
-    } else if (config.theme === "light") {
-      document.body.classList.add("light");
-    }
+    // 2. Apply the current theme class
+    document.body.classList.add(config.theme);
 
-    const metaDescriptionDark = document.querySelector(
-      'meta[name="theme-color"][media*="dark"]',
-    );
-    const metaDescriptionLight = document.querySelector(
-      'meta[name="theme-color"][media*="light"]',
-    );
+    // 3. Update the data-theme attribute for SCSS
+    document.documentElement.setAttribute("data-theme", config.theme);
 
-    if (config.theme === "auto") {
-      metaDescriptionDark?.setAttribute("content", "#151515");
-      metaDescriptionLight?.setAttribute("content", "#fafafa");
-    } else {
-      const themeColor = getCSSVar("--theme-color");
-      metaDescriptionDark?.setAttribute("content", themeColor);
-      metaDescriptionLight?.setAttribute("content", themeColor);
+    // 4. Update the mobile status bar colors
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      const colors: Record<string, string> = {
+        light: "#f5d6a7",
+        midnight: "#15181e",
+        forest: "#1b2114",
+        cyberpunk: "#1a0624",
+        gameboy: "#9bbc0f",
+        vampire: "#0f0f0f",
+      };
+      metaThemeColor.setAttribute("content", colors[config.theme] || "#f5d6a7");
     }
   }, [config.theme]);
 }
@@ -160,7 +159,6 @@ function Screen() {
         <div className={styles["window-content"]} id={SlotID.AppBody}>
           <Routes>
             <Route path={Path.Home} element={<Landing />} />
-            {/* <Route path={Path.Templates} element={<TemplatePage />} /> */}
             <Route path={Path.Chat} element={<ChatRoom />} />
             <Route path={Path.Settings} element={<Settings />} />
             <Route path={Path.MyAgent} element={<Chat />} />
@@ -178,7 +176,6 @@ const useWebLLM = () => {
 
   const isWebllmInitialized = useRef(false);
 
-  // If service worker registration timeout, fall back to web worker
   const timeout = setTimeout(() => {
     if (!isWebllmInitialized.current && !isWebllmActive && !webllm) {
       log.info(
@@ -189,13 +186,11 @@ const useWebLLM = () => {
     }
   }, 2_000);
 
-  // Initialize WebLLM engine
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       log.info("Service Worker API is available and in use.");
       navigator.serviceWorker.ready.then(() => {
         log.info("Service Worker is activated.");
-        // Check whether WebGPU is available in Service Worker
         const request = {
           kind: "checkWebGPUAvilability",
           uuid: crypto.randomUUID(),
@@ -252,7 +247,6 @@ const useWebLLM = () => {
   if (webllm?.webllm.type === "serviceWorker") {
     setInterval(() => {
       if (webllm) {
-        // 10s per heartbeat, dead after 30 seconds of inactivity
         setWebllmAlive(
           !!webllm.webllm.engine &&
             (webllm.webllm.engine as ServiceWorkerMLCEngine).missedHeatbeat < 3,
@@ -296,7 +290,6 @@ const useLoadUrlParam = () => {
         : null,
     };
     Object.keys(modelConfig).forEach((key) => {
-      // If the value of the key is null, delete the key
       if (modelConfig[key] === null) {
         delete modelConfig[key];
       }
@@ -311,7 +304,6 @@ const useLoadUrlParam = () => {
 const useStopStreamingMessages = () => {
   const chatStore = useChatStore();
 
-  // Clean up bad chat messages due to refresh during generating
   useEffect(() => {
     chatStore.stopStreaming();
   }, []);
@@ -320,7 +312,6 @@ const useStopStreamingMessages = () => {
 const useLogLevel = (webllm?: WebLLMApi) => {
   const config = useAppConfig();
 
-  // Update log level once app config loads
   useEffect(() => {
     log.setLevel(config.logLevel);
     if (webllm?.webllm?.engine) {

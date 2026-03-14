@@ -1,60 +1,91 @@
 @import "./animation.scss";
 @import "./window.scss";
 @import url('https://fonts.googleapis.com/css2?family=Jersey+15&display=swap');
-@mixin light {
-  --theme: light;
 
+@mixin light {
   --white: #f5d6a7; 
   --black: #361304; 
   --gray: #c88954; 
-  --light-gray: #8a4b24;
   --primary: #9e5021; 
   --second: #e6c08c; 
-  --hover-color: #ffdca3;
-  --bar-color: #52210b; 
-  --theme-color: var(--gray);
-  --mlc-icon-color: #361304;
-
+  --bar-color: #52210b;
+  --border-in-light: 4px solid #52210b;
   --shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
-  --card-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
-
-  --border-in-light: 4px solid #52210b; 
-  --border-in-dark: 4px solid #52210b;
+  --theme-color: #f5d6a7;
 }
 
-@mixin dark {
-  --theme: dark;
-  
-  /* INVERTED CONTRAST: Backgrounds are now dark, text is now light */
-  --white: #2b1c13; /* Deep mahogany for chat bubbles and modals */
-  --black: #f5d6a7; /* Parchment color for text so it glows against the dark */
-  
-  --gray: #180e09; /* Very dark charred wood for the main app background */
-  --light-gray: #3d281c;
-  
-  --primary: #b55c27; /* A slightly brighter burnt orange for buttons to maintain contrast */
-  --second: #3d261a; /* Darker secondary background for user chat bubbles/hovers */
-  --hover-color: #4f3222;
-  
-  --bar-color: #140803; /* Almost black for borders and scrollbars */
-  --mlc-icon-color: #f5d6a7; /* Icons match the text color */
-
-  --border-in-light: 4px solid #140803;
-  --border-in-dark: 4px solid #140803;
-
-  --theme-color: var(--gray);
-
-  div:not(.no-dark)>svg {
-    filter: invert(0.1); 
-  }
+@mixin midnight {
+  --white: #1e222a; 
+  --black: #d8dee9; 
+  --gray: #15181e; 
+  --primary: #5e81ac; 
+  --second: #2e3440; 
+  --bar-color: #0b0e14;
+  --border-in-light: 4px solid #0b0e14;
+  --shadow: 4px 4px 0px rgba(0, 0, 0, 0.5);
+  --theme-color: #15181e;
 }
 
-.light {
+@mixin forest {
+  --white: #2d3621; 
+  --black: #e8efd1; 
+  --gray: #1b2114; 
+  --primary: #637a47; 
+  --second: #3a472c; 
+  --bar-color: #0d1108;
+  --border-in-light: 4px solid #0d1108;
+  --shadow: 4px 4px 0px rgba(0, 0, 0, 0.4);
+  --theme-color: #1b2114;
+}
+
+@mixin cyberpunk {
+  --white: #2b0b3d; 
+  --black: #00ffcc;
+  --gray: #1a0624; 
+  --primary: #ff00ff;
+  --second: #3d0f57; 
+  --bar-color: #0d0211;
+  --border-in-light: 4px solid #ff00ff;
+  --shadow: 4px 4px 0px rgba(255, 0, 255, 0.3);
+  --theme-color: #1a0624;
+}
+
+@mixin gameboy {
+  --white: #8bac0f; 
+  --black: #0f380f;
+  --gray: #9bbc0f; 
+  --primary: #306230; 
+  --second: #8bac0f; 
+  --bar-color: #0f380f;
+  --border-in-light: 4px solid #0f380f;
+  --shadow: 4px 4px 0px rgba(15, 56, 15, 0.2);
+  --theme-color: #9bbc0f;
+}
+
+@mixin vampire {
+  --white: #1a1a1a; 
+  --black: #e6e6e6; 
+  --gray: #0f0f0f; 
+  --primary: #800000;
+  --second: #262626; 
+  --bar-color: #000000;
+  --border-in-light: 4px solid #4d0000;
+  --shadow: 4px 4px 0px rgba(0, 0, 0, 0.8);
+  --theme-color: #0f0f0f;
+}
+
+[data-theme='light'], .light { @include light; }
+[data-theme='midnight'], .midnight { @include midnight; }
+[data-theme='forest'], .forest { @include forest; }
+[data-theme='cyberpunk'], .cyberpunk { @include cyberpunk; }
+[data-theme='gameboy'], .gameboy { @include gameboy; }
+[data-theme='vampire'], .vampire { @include vampire; }
+
+[data-theme='auto'], .auto {
   @include light;
-}
-
-.dark {
-  @include dark;
+  @media (prefers-color-scheme: dark) {
+    @include midnight;
+  }
 }
 
 .mask {
@@ -63,9 +94,7 @@
 
 :root {
   @include light;
-
   --pixel-font: 'Jersey 15', 'Courier New', monospace;
-
   --window-width: 90vw;
   --window-height: 90vh;
   --sidebar-width: 300px;
@@ -82,27 +111,16 @@
     --window-content-width: var(--window-width);
     --message-max-width: 100%;
   }
-
-  .no-mobile {
-    display: none;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    @include dark;
-  }
+  .no-mobile { display: none; }
 }
 
 * {
   font-family: var(--pixel-font) !important;
   font-weight: 400 !important; 
-  
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
   font-smooth: never;
   text-rendering: optimizeSpeed;
-
   image-rendering: pixelated; 
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
@@ -168,9 +186,7 @@ select {
   box-shadow: 2px 2px 0px var(--shadow);
 }
 
-label {
-  cursor: pointer;
-}
+label { cursor: pointer; }
 
 input {
   text-align: center;
@@ -220,34 +236,18 @@ input[type="range"] {
   border: 2px solid var(--black);
 }
 
-input[type="range"]::-webkit-slider-thumb {
-  @include thumb();
-}
-
-input[type="range"]::-moz-range-thumb {
-  @include thumb();
-}
-
-input[type="range"]::-ms-thumb {
-  @include thumb();
-}
+input[type="range"]::-webkit-slider-thumb { @include thumb(); }
+input[type="range"]::-moz-range-thumb { @include thumb(); }
+input[type="range"]::-ms-thumb { @include thumb(); }
 
 @mixin thumbHover() {
   transform: scale(1.1);
   background-color: var(--hover-color);
 }
 
-input[type="range"]::-webkit-slider-thumb:hover {
-  @include thumbHover();
-}
-
-input[type="range"]::-moz-range-thumb:hover {
-  @include thumbHover();
-}
-
-input[type="range"]::-ms-thumb:hover {
-  @include thumbHover();
-}
+input[type="range"]::-webkit-slider-thumb:hover { @include thumbHover(); }
+input[type="range"]::-moz-range-thumb:hover { @include thumbHover(); }
+input[type="range"]::-ms-thumb:hover { @include thumbHover(); }
 
 input[type="number"],
 input[type="text"],
@@ -265,9 +265,7 @@ input[type="password"] {
   box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);
 }
 
-div.math {
-  overflow-x: auto;
-}
+div.math { overflow-x: auto; }
 
 .screen-model-container {
   z-index: 9999;
@@ -276,14 +274,11 @@ div.math {
   left: 0;
   height: var(--full-height);
   width: 100vw;
-  background-color: rgba($color: #000000, $alpha: 0.6); 
+  background-color: rgba(0, 0, 0, 0.6); 
   display: flex;
   align-items: center;
   justify-content: center;
-
-  @media screen and (max-width: 600px) {
-    align-items: flex-end;
-  }
+  @media screen and (max-width: 600px) { align-items: flex-end; }
 }
 
 .link {
@@ -291,7 +286,6 @@ div.math {
   color: var(--primary);
   text-decoration: none;
   border-bottom: 2px dotted var(--primary); 
-
   &:hover {
     text-decoration: none;
     color: var(--white);
@@ -304,13 +298,11 @@ pre {
   background-color: #2a1a0a !important; 
   border: 4px solid var(--primary);
   color: #fcebc4;
-
   &:hover .copy-code-button {
     pointer-events: all;
     transform: translateX(0px);
     opacity: 1;
   }
-
   .copy-code-button {
     position: absolute;
     right: 10px;
@@ -326,11 +318,7 @@ pre {
     pointer-events: none;
     opacity: 0;
     transition: all ease 0.1s;
-
-    &:after {
-      content: "copy";
-    }
-
+    &:after { content: "copy"; }
     &:hover {
       background-color: var(--white);
       color: var(--primary);
@@ -340,14 +328,8 @@ pre {
 
 .clickable {
   cursor: pointer;
-
-  &:hover {
-    filter: brightness(0.9);
-  }
-
-  &:focus {
-    filter: brightness(0.95);
-  }
+  &:hover { filter: brightness(0.9); }
+  &:focus { filter: brightness(0.95); }
 }
 
 .error {
@@ -359,24 +341,15 @@ pre {
   overflow: auto;
   background-color: #ffcccc;
   color: #8b0000;
-
-  pre {
-    overflow: auto;
-  }
+  pre { overflow: auto; }
 }
 
 .password-input-container {
   max-width: 50%;
   display: flex;
   justify-content: flex-end;
-
-  .password-eye {
-    margin-right: 4px;
-  }
-
-  .password-input {
-    min-width: 80%;
-  }
+  .password-eye { margin-right: 4px; }
+  .password-input { min-width: 80%; }
 }
 
 .bot-avatar, .user-avatar {
@@ -391,7 +364,6 @@ pre {
   box-shadow: 2px 2px 0px var(--shadow);
   border-radius: 0; 
   background-color: var(--white);
-
   svg {
     height: 24px;
     min-height: 24px;
@@ -406,6 +378,4 @@ pre {
   text-overflow: ellipsis;
 }
 
-.copyable {
-  user-select: text;
-}
+.copyable { user-select: text; }

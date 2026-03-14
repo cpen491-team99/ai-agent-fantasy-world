@@ -64,7 +64,6 @@ export const metadata: Metadata = {
   },
 };
 
-/* FIX: Added Google Font domains to style-src and font-src */
 const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
@@ -99,7 +98,6 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
 
-        {/* FIX: Added the actual Font Link here */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -107,7 +105,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=VT323&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Jersey+15&display=swap"
           rel="stylesheet"
         />
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
 import { useAppDispatch, useAppSelector } from "./redux/hooks";
@@ -8,8 +8,34 @@ import { setRooms, addMessage } from "./redux/chatroomsSlice";
 import { createMessage } from "./store/chat";
 import { getMqttClient } from "./client/mqtt";
 import { v4 as uuidv4 } from "uuid";
+import { useAppConfig } from "./store/config";
 
 const uuid = uuidv4();
+
+function ThemeWatcher() {
+  const theme = useAppConfig((state) => state.theme);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+
+    document.body.classList.remove("light", "midnight", "forest", "auto");
+    document.body.classList.add(theme);
+
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      const colors: Record<string, string> = {
+        light: "#f5d6a7",
+        midnight: "#15181e",
+        forest: "#1b2114",
+      };
+      metaThemeColor.setAttribute("content", colors[theme] || "#f5d6a7");
+    }
+
+    console.log(`[ThemeWatcher] UI switched to: ${theme}`);
+  }, [theme]);
+
+  return null;
+}
 
 function MqttBootstrap() {
   const dispatch = useAppDispatch();
@@ -35,7 +61,6 @@ function MqttBootstrap() {
     }
 
     const brokerUrl = `ws://127.0.0.1:${port}`;
-
     const client = getMqttClient();
 
     client.setHandlers({
@@ -48,7 +73,7 @@ function MqttBootstrap() {
 
         const rooms = roomsRaw
           .map((r: any) => {
-            const id = r.id ?? r.roomId ?? r.name; // whichever exists
+            const id = r.id ?? r.roomId ?? r.name;
             const topic = r.topic ?? r.title ?? id ?? "Room";
             return {
               ...r,
@@ -97,6 +122,7 @@ function MqttBootstrap() {
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
+      <ThemeWatcher /> {/* THEME HOOK ADDED HERE */}
       <MqttBootstrap />
       {children}
     </Provider>

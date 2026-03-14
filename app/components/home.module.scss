@@ -524,3 +524,56 @@
 .rtl-screen {
   direction: rtl;
 }
+
+.theme-selector-container {
+  position: relative;
+}
+
+.theme-menu {
+  position: absolute;
+  bottom: 50px; /* Float above the button */
+  left: 0;
+  background-color: var(--white);
+  border: var(--border-in-light);
+  box-shadow: 4px 4px 0px var(--shadow);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  animation: slide-in ease 0.2s;
+}
+
+.theme-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: var(--pixel-font);
+  font-size: 16px;
+  color: var(--black);
+  text-align: left;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: var(--second);
+  }
+
+  &-active {
+    background-color: var(--second);
+    border-left: 4px solid var(--primary);
+  }
+
+  .theme-menu-icon {
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
