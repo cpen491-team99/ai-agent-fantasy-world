@@ -236,12 +236,13 @@ export class FrontendMqttClient {
         try {
           const data = JSON.parse(text) as SenderHistoryResponse;
           this.handlers.onSenderHistory?.(data);
+          this.emit("onSenderHistory", data);
         } catch {}
         return;
       }
 
       // agents/<agentId>/memory/find/response/<requestId>
-      // Fixed: Regex now captures agentId from the topic
+      const { agentId } = this.opts ?? { agentId: "" };
       const mMem = topic.match(
         /^agents\/([^/]+)\/memory\/find\/response\/([^/]+)$/,
       );
@@ -249,11 +250,7 @@ export class FrontendMqttClient {
         const topicAgentId = mMem[1];
         try {
           const data = JSON.parse(text) as MemoryFindResponse;
-          // Fixed: Inject agentId into data object
-          (data as any).agentId = topicAgentId;
-
           this.handlers.onMemoryFind?.(data);
-          this.emit("onMemoryFind", data);
         } catch {}
         return;
       }
@@ -306,7 +303,7 @@ export class FrontendMqttClient {
   subscribeBase() {
     if (!this.client) return;
 
-    // Fixed: Added wildcard subscription for ALL agents memory responses
+    const { agentId } = this.opts!;
     this.client.subscribe(
       [
         "rooms/state",
@@ -504,22 +501,15 @@ export class FrontendMqttClient {
     const { agentId } = this.opts;
     const requestId = `${agentId}-${Date.now()}`;
 
+    console.log("[MQTT] requestMemoryFind()", {
+      usingAgentId: agentId,
+      requestId,
+      textQuery,
+      topic: `agents/${agentId}/memory/find/request`,
+    });
+
     this.safePublish(
       `agents/${agentId}/memory/find/request`,
-      JSON.stringify({ requestId, textQuery }),
-      { qos: 0, retain: false },
-    );
-
-    return requestId;
-  }
-
-  // Fixed: Added method to request SPECIFIC agent memory
-  requestAgentMemoryFind(textQuery: string, targetAgentID: string) {
-    if (!this.opts) throw new Error("MQTT client not connected yet");
-    const requestId = `${targetAgentID}-${Date.now()}`;
-
-    this.safePublish(
-      `agents/${targetAgentID}/memory/find/request`,
       JSON.stringify({ requestId, textQuery }),
       { qos: 0, retain: false },
     );

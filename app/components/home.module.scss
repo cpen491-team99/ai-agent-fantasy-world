@@ -200,6 +200,18 @@
   user-select: none;
   position: relative;
   content-visibility: auto;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 1) 33%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    var(--room-bg);
+  background-size: 100% 100%, cover;
+  background-position: left, center;
+  background-repeat: no-repeat;
+  background-clip: padding-box;
 }
 
 .chat-item:hover {
@@ -240,7 +252,7 @@
   font-weight: bolder;
   color: var(--black);
   display: block;
-  width: calc(100% - 15px);
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

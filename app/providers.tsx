@@ -12,13 +12,26 @@ import { useAppConfig } from "./store/config";
 
 const uuid = uuidv4();
 
+/**
+ * Watches the Zustand config store for theme changes.
+ * Syncs the theme to the HTML attribute, body class, and mobile status bar.
+ */
 function ThemeWatcher() {
   const theme = useAppConfig((state) => state.theme);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
 
-    document.body.classList.remove("light", "midnight", "forest", "auto");
+    const allThemes = [
+      "light",
+      "midnight",
+      "forest",
+      "cyberpunk",
+      "gameboy",
+      "vampire",
+      "auto",
+    ];
+    document.body.classList.remove(...allThemes);
     document.body.classList.add(theme);
 
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -27,6 +40,9 @@ function ThemeWatcher() {
         light: "#f5d6a7",
         midnight: "#15181e",
         forest: "#1b2114",
+        cyberpunk: "#1a0624",
+        gameboy: "#9bbc0f",
+        vampire: "#0f0f0f",
       };
       metaThemeColor.setAttribute("content", colors[theme] || "#f5d6a7");
     }
@@ -37,6 +53,10 @@ function ThemeWatcher() {
   return null;
 }
 
+/**
+ * Handles the MQTT connection lifecycle and dispatches incoming
+ * messages/rooms to the Redux store.
+ */
 function MqttBootstrap() {
   const dispatch = useAppDispatch();
   const currentUserAgentId = useAppSelector(
@@ -119,10 +139,14 @@ function MqttBootstrap() {
   return null;
 }
 
+/**
+ * Global provider wrapper for the application.
+ * Injects Redux store and initializes background watchers.
+ */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
-      <ThemeWatcher /> {/* THEME HOOK ADDED HERE */}
+      <ThemeWatcher />
       <MqttBootstrap />
       {children}
     </Provider>

@@ -29,6 +29,10 @@ import { WebLLMApi } from "../client/webllm";
 import { ModelClient, useChatStore } from "../store";
 import { MLCLLMContext, WebLLMContext } from "../context";
 import { MlcLLMApi } from "../client/mlcllm";
+import { Provider } from "react-redux";
+import LoginModal from "@/app/components/auth/LoginModal";
+import LogoutModal from "@/app/components/auth/LogoutModal";
+import AgentSelectionModal from "@/app/components/auth/AgentSelectionModal";
 
 export function Loading(props: { noLogo?: boolean }) {
   return (
@@ -160,6 +164,10 @@ function Screen() {
             <Route path={Path.MyAgent} element={<Chat />} />
           </Routes>
         </div>
+
+        <LoginModal />
+        <LogoutModal />
+        <AgentSelectionModal />
       </>
     </div>
   );
@@ -332,6 +340,39 @@ const useModels = (mlcllm: MlcLLMApi | undefined) => {
   }, [config.modelClientType, mlcllm]);
 };
 
+/**
+ * Eagerly loads the default model as soon as the WebLLM engine is ready,
+ * so users don't experience a cold-start delay on their first interaction.
+ */
+const usePreloadModel = (webllm: WebLLMApi | undefined) => {
+  const config = useAppConfig();
+
+  useEffect(() => {
+    if (!webllm) return;
+
+    const modelId = config.modelConfig.model;
+    const modelConfig = {
+      ...config.modelConfig,
+      cache: config.cacheType,
+      stream: false,
+      enable_thinking: config.enableThinking,
+    };
+
+    log.info("[Home] Pre-loading default model on page load:", modelId);
+
+    webllm.webllm.engine
+      .reload(modelId, modelConfig as any)
+      .then(() => {
+        log.info("[Home] Default model loaded successfully:", modelId);
+      })
+      .catch((err: any) => {
+        log.warn("[Home] Failed to pre-load model:", err);
+      });
+    // Only run once when the engine first becomes available
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webllm]);
+};
+
 export function Home() {
   const hasHydrated = useHasHydrated();
   const { webllm, isWebllmActive } = useWebLLM();
@@ -343,6 +384,7 @@ export function Home() {
   useStopStreamingMessages();
   useModels(mlcllm);
   useLogLevel(webllm);
+  usePreloadModel(webllm);
 
   if (!hasHydrated || !webllm || !isWebllmActive) {
     return <Loading />;

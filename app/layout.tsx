@@ -28,10 +28,6 @@ export const metadata: Metadata = {
     initialScale: 1,
     maximumScale: 1,
   },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#151515" },
-  ],
   appleWebApp: {
     title: "WebLLM Chat",
     statusBarStyle: "default",
@@ -66,10 +62,11 @@ export const metadata: Metadata = {
 
 const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline';
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com;
     worker-src 'self' blob:;
-    connect-src 'self' blob: data: https: http: ws: wss:;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    frame-src 'self' https://accounts.google.com;
+    connect-src 'self' blob: data: https: http: ws: wss: https://accounts.google.com;
+    style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com;
     img-src 'self' blob: data: https:;
     font-src 'self' https://fonts.gstatic.com;
     object-src 'none';
@@ -129,7 +126,6 @@ export default function RootLayout({
         <link rel="manifest" href="/site.webmanifest" />
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#062578" />
         <meta name="msapplication-TileColor" content="#2b5797" />
-        <meta name="theme-color" content="#ffffff" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
