@@ -36,6 +36,7 @@ export type SenderHistoryResponse = {
   error?: string;
 };
 
+// Fixed: Added agentId optional field
 export type MemoryFindResponse = {
   requestId: string;
   textQuery?: string;
@@ -241,6 +242,7 @@ export class FrontendMqttClient {
       }
 
       // agents/<agentId>/memory/find/response/<requestId>
+      const { agentId } = this.opts ?? { agentId: "" };
       const mMem = topic.match(
         /^agents\/([^/]+)\/memory\/find\/response\/([^/]+)$/,
       );
@@ -248,19 +250,7 @@ export class FrontendMqttClient {
         const topicAgentId = mMem[1];
         try {
           const data = JSON.parse(text) as MemoryFindResponse;
-          // Make sure json data contains agentID
-          (data as any).agentId = topicAgentId;
-
-          console.log("[MQTT] memory find response topic matched", {
-            optsAgentId: agentId, // the one used to build the regex
-            topic,
-            requestIdFromTopic: mMem[1],
-            requestIdInPayload: data?.requestId,
-            resultCount: Array.isArray(data?.results) ? data.results.length : 0,
-          });
-
           this.handlers.onMemoryFind?.(data);
-          this.emit("onMemoryFind", data); // ✅ critical for addHandlers()
         } catch {}
         return;
       }
@@ -313,6 +303,7 @@ export class FrontendMqttClient {
   subscribeBase() {
     if (!this.client) return;
 
+    const { agentId } = this.opts!;
     this.client.subscribe(
       [
         "rooms/state",
@@ -519,20 +510,6 @@ export class FrontendMqttClient {
 
     this.safePublish(
       `agents/${agentId}/memory/find/request`,
-      JSON.stringify({ requestId, textQuery }),
-      { qos: 0, retain: false },
-    );
-
-    return requestId;
-  }
-
-  // Method to request memories for specific agent
-  requestAgentMemoryFind(textQuery: string, targetAgentID: string) {
-    if (!this.opts) throw new Error("MQTT client not connected yet");
-    const requestId = `${targetAgentID}-${Date.now()}`;
-
-    this.safePublish(
-      `agents/${targetAgentID}/memory/find/request`,
       JSON.stringify({ requestId, textQuery }),
       { qos: 0, retain: false },
     );

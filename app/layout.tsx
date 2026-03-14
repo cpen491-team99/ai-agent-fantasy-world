@@ -28,10 +28,6 @@ export const metadata: Metadata = {
     initialScale: 1,
     maximumScale: 1,
   },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#151515" },
-  ],
   appleWebApp: {
     title: "WebLLM Chat",
     statusBarStyle: "default",
@@ -70,9 +66,9 @@ const cspHeader = `
     worker-src 'self' blob:;
     frame-src 'self' https://accounts.google.com;
     connect-src 'self' blob: data: https: http: ws: wss: https://accounts.google.com;
-    style-src 'self' 'unsafe-inline' https://accounts.google.com;
+    style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com;
     img-src 'self' blob: data: https:;
-    font-src 'self';
+    font-src 'self' https://fonts.gstatic.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
@@ -98,6 +94,18 @@ export default function RootLayout({
           name="viewport"
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Jersey+15&display=swap"
+          rel="stylesheet"
+        />
+
         <link
           rel="apple-touch-icon"
           sizes="180x180"
@@ -118,7 +126,6 @@ export default function RootLayout({
         <link rel="manifest" href="/site.webmanifest" />
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#062578" />
         <meta name="msapplication-TileColor" content="#2b5797" />
-        <meta name="theme-color" content="#ffffff" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

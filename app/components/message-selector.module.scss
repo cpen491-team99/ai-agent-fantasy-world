@@ -1,11 +1,19 @@
+@import "../styles/animation.scss";
+
+$pixel-font: 'VT323', 'Courier New', monospace;
+
 .message-selector {
   .message-filter {
     display: flex;
+    align-items: center;
 
     .search-bar {
       max-width: unset;
       flex-grow: 1;
       margin-right: 10px;
+      /* Style the search input to match your settings inputs */
+      font-family: $pixel-font;
+      font-size: 20px;
     }
 
     .actions {
@@ -21,10 +29,12 @@
 
       .search-bar {
         margin-right: 0;
+        width: 100%;
       }
 
       .actions {
         margin-top: 20px;
+        width: 100%;
 
         button {
           flex-grow: 1;
@@ -35,18 +45,25 @@
 
   .messages {
     margin-top: 20px;
-    border-radius: 10px;
+    border-radius: 0; /* Square Fix */
     border: var(--border-in-light);
+    background-color: var(--white);
     overflow: hidden;
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
 
     .message {
       display: flex;
       align-items: center;
-      padding: 8px 10px;
+      padding: 12px 15px; /* Increased padding */
       cursor: pointer;
+      transition: background-color 0.1s;
 
       &-selected {
         background-color: var(--second);
+      }
+
+      &:hover:not(&-selected) {
+        background-color: var(--hover-color);
       }
 
       &:not(:last-child) {
@@ -54,21 +71,30 @@
       }
 
       .avatar {
-        margin-right: 10px;
+        margin-right: 12px;
+        image-rendering: pixelated; /* Sharp Raccoon/Cat/Dog icons */
       }
 
       .body {
         flex: 1;
-        max-width: calc(100% - 80px);
+        max-width: calc(100% - 100px);
 
         .date {
-          font-size: 12px;
+          font-family: $pixel-font;
+          font-size: 16px; /* Increased from 12px */
           line-height: 1.2;
-          opacity: 0.5;
+          color: var(--black);
+          opacity: 0.7;
         }
 
         .content {
-          font-size: 12px;
+          font-family: $pixel-font;
+          font-size: 18px; /* Increased from 12px for readability */
+          font-weight: bold;
+          color: var(--black);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       }
 
@@ -76,6 +102,13 @@
         display: flex;
         justify-content: flex-end;
         flex: 1;
+        
+        /* Forces the checkboxes to be square blocky toggles */
+        input[type="checkbox"] {
+          width: 20px;
+          height: 20px;
+          border-radius: 0;
+        }
       }
     }
   }

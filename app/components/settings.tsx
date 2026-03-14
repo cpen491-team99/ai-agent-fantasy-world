@@ -391,7 +391,7 @@ export function Settings() {
             >
               {Object.values(Theme).map((v) => (
                 <option value={v} key={v}>
-                  {v}
+                  {v.toUpperCase()}
                 </option>
               ))}
             </Select>
