@@ -19,7 +19,6 @@ export enum SubmitKey {
 }
 
 export enum Theme {
-  Auto = "auto",
   Light = "light",
   Midnight = "midnight",
   Forest = "forest",
@@ -110,7 +109,7 @@ export const DEFAULT_CONFIG: ConfigType = {
   submitKey: SubmitKey.Enter,
   avatar: "1f603",
   fontSize: 14,
-  theme: Theme.Auto,
+  theme: Theme.Light,
   tightBorder: false,
   sendPreviewBubble: true,
   enableAutoGenerateTitle: true,

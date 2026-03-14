@@ -81,13 +81,6 @@
 [data-theme='gameboy'], .gameboy { @include gameboy; }
 [data-theme='vampire'], .vampire { @include vampire; }
 
-[data-theme='auto'], .auto {
-  @include light;
-  @media (prefers-color-scheme: dark) {
-    @include midnight;
-  }
-}
-
 .mask {
   filter: invert(0.8);
 }

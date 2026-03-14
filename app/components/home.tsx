@@ -82,7 +82,6 @@ export function useSwitchTheme() {
       "cyberpunk",
       "gameboy",
       "vampire",
-      "auto",
     ];
     document.body.classList.remove(...allThemes);
 

@@ -9,7 +9,6 @@ import TemplateIcon from "../icons/chat.svg";
 import DragIcon from "../icons/drag.svg";
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
-import AutoIcon from "../icons/auto.svg";
 import PawIcon from "../icons/paw-print.svg";
 import GoogleIcon from "../icons/google.svg";
 
@@ -177,7 +176,6 @@ export function SideBar(props: { className?: string }) {
 
   const { theme } = config;
   const themeOptions = [
-    { id: Theme.Auto, label: "Auto", icon: <AutoIcon /> },
     { id: Theme.Light, label: "Light", icon: <LightIcon /> },
     { id: Theme.Midnight, label: "Midnight", icon: <DarkIcon /> },
     { id: Theme.Forest, label: "Forest", icon: <PawIcon /> },
@@ -261,7 +259,6 @@ export function SideBar(props: { className?: string }) {
               <IconButton
                 icon={
                   <>
-                    {theme === Theme.Auto && <AutoIcon />}
                     {theme === Theme.Light && <LightIcon />}
                     {theme === Theme.Midnight && <DarkIcon />}
                     {theme === Theme.Forest && <PawIcon />}
