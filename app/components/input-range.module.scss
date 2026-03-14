@@ -1,13 +1,54 @@
+@import "../styles/animation.scss";
+
+$pixel-font: 'VT323', 'Courier New', monospace;
+
 .input-range {
   border: var(--border-in-light);
-  border-radius: 10px;
-  padding: 5px 10px 5px 10px;
-  font-size: 12px;
+  border-radius: 0; /* Square Fix */
+  padding: 8px 12px;
+  font-size: 24px; /* Matches your bigger settings font */
   display: flex;
   justify-content: space-between;
-  max-width: 40%;
+  align-items: center;
+  max-width: 60%; /* Slightly wider for better slider control */
+  background-color: var(--white);
+  box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.1);
 
   input[type="range"] {
-    max-width: calc(100% - 34px);
+    flex: 1;
+    margin: 0 10px;
+    appearance: none;
+    background-color: var(--light-gray);
+    height: 6px;
+    border: 2px solid var(--black);
+    
+    /* Re-applying your custom thumb mixin logic for consistency */
+    &::-webkit-slider-thumb {
+      appearance: none;
+      height: 20px;
+      width: 12px;
+      background-color: var(--primary);
+      border: 2px solid var(--black);
+      cursor: pointer;
+      border-radius: 0;
+      box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+    }
+
+    &::-moz-range-thumb {
+      height: 20px;
+      width: 12px;
+      background-color: var(--primary);
+      border: 2px solid var(--black);
+      cursor: pointer;
+      border-radius: 0;
+    }
+  }
+
+  /* Styling the numerical value display if applicable */
+  span, .range-value {
+    font-family: $pixel-font;
+    color: var(--black);
+    min-width: 40px;
+    text-align: right;
   }
 }

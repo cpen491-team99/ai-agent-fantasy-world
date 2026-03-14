@@ -19,9 +19,12 @@ export enum SubmitKey {
 }
 
 export enum Theme {
-  Auto = "auto",
-  Dark = "dark",
   Light = "light",
+  Midnight = "midnight",
+  Forest = "forest",
+  Cyberpunk = "cyberpunk",
+  Gameboy = "gameboy",
+  Vampire = "vampire",
 }
 
 export enum CacheType {
@@ -106,7 +109,7 @@ export const DEFAULT_CONFIG: ConfigType = {
   submitKey: SubmitKey.Enter,
   avatar: "1f603",
   fontSize: 14,
-  theme: Theme.Auto,
+  theme: Theme.Light,
   tightBorder: false,
   sendPreviewBubble: true,
   enableAutoGenerateTitle: true,

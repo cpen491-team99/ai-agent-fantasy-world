@@ -1,5 +1,4 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-
 import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
@@ -10,12 +9,19 @@ import TemplateIcon from "../icons/chat.svg";
 import DragIcon from "../icons/drag.svg";
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
-import AutoIcon from "../icons/auto.svg";
 import PawIcon from "../icons/paw-print.svg";
+import GoogleIcon from "../icons/google.svg";
 
 import Locale from "../locales";
 
-import { Theme, useAppConfig } from "../store";
+import {
+  openLogoutModal,
+  openLoginModal,
+  openAgentSelectionModal,
+} from "../redux/authSlice";
+import { useRequireAuth } from "./auth/useRequireAuth";
+
+import { Theme, useAppConfig } from "../store/config";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   setCurrentRoomId,
@@ -36,7 +42,19 @@ import { useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 import { showToast } from "./ui-lib";
-import { getAgentAvatar } from "../utils/agent-avatar";
+
+import FoxImg from "../assets/agents/fox.png";
+import BunnyImg from "../assets/agents/bunny.png";
+import RaccoonImg from "../assets/agents/raccoon.png";
+import MouseImg from "../assets/agents/mouse.png";
+import DefaultImg from "../assets/agents/default.png";
+
+const AGENT_IMAGE_MAP: Record<string, string> = {
+  "fox.png": FoxImg.src,
+  "bunny.png": BunnyImg.src,
+  "raccoon.png": RaccoonImg.src,
+  "mouse.png": MouseImg.src,
+};
 
 const ChatList = dynamic(async () => (await import("./chat-list")).ChatList, {
   loading: () => null,
@@ -76,7 +94,6 @@ function useHotKey() {
 
 function useDragSideBar() {
   const limit = (x: number) => Math.min(MAX_SIDEBAR_WIDTH, x);
-
   const config = useAppConfig();
   const startX = useRef(0);
   const startDragWidth = useRef(config.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH);
@@ -93,37 +110,25 @@ function useDragSideBar() {
   };
 
   const onDragStart = (e: MouseEvent) => {
-    // Remembers the initial width each time the mouse is pressed
     startX.current = e.clientX;
     startDragWidth.current = config.sidebarWidth;
     const dragStartTime = Date.now();
 
     const handleDragMove = (e: MouseEvent) => {
-      if (Date.now() < lastUpdateTime.current + 20) {
-        return;
-      }
+      if (Date.now() < lastUpdateTime.current + 20) return;
       lastUpdateTime.current = Date.now();
       const d = e.clientX - startX.current;
       const nextWidth = limit(startDragWidth.current + d);
       config.update((config) => {
-        if (nextWidth < MIN_SIDEBAR_WIDTH) {
-          config.sidebarWidth = NARROW_SIDEBAR_WIDTH;
-        } else {
-          config.sidebarWidth = nextWidth;
-        }
+        config.sidebarWidth =
+          nextWidth < MIN_SIDEBAR_WIDTH ? NARROW_SIDEBAR_WIDTH : nextWidth;
       });
     };
 
     const handleDragEnd = () => {
-      // In useRef the data is non-responsive, so `config.sidebarWidth` can't get the dynamic sidebarWidth
       window.removeEventListener("pointermove", handleDragMove);
       window.removeEventListener("pointerup", handleDragEnd);
-
-      // if user click the drag icon, should toggle the sidebar
-      const shouldFireClick = Date.now() - dragStartTime < 300;
-      if (shouldFireClick) {
-        toggleSideBar();
-      }
+      if (Date.now() - dragStartTime < 300) toggleSideBar();
     };
 
     window.addEventListener("pointermove", handleDragMove);
@@ -142,23 +147,22 @@ function useDragSideBar() {
     document.documentElement.style.setProperty("--sidebar-width", sideBarWidth);
   }, [config.sidebarWidth, isMobileScreen, shouldNarrow]);
 
-  return {
-    onDragStart,
-    shouldNarrow,
-  };
+  return { onDragStart, shouldNarrow };
 }
 
 export function SideBar(props: { className?: string }) {
   const dispatch = useAppDispatch();
-  const rooms = useAppSelector((state) => state.chatrooms.rooms);
   const chatroomsState = useAppSelector((state) => state.chatrooms);
-  const currentUserAgentId = useAppSelector(
-    (state) => state.chatrooms.currentUserAgentId,
-  );
-  const [showReduxState, setShowReduxState] = useState(false);
-  const [showAgentMenu, setShowAgentMenu] = useState(false);
+  const auth = useAppSelector((state) => state.auth);
+  const { requireAuth } = useRequireAuth();
 
-  // drag side bar
+  const [showReduxState, setShowReduxState] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
+
+  const activeUserAgent = auth.activeUserAgent;
+  const activeAgentImage =
+    AGENT_IMAGE_MAP[activeUserAgent?.imageId ?? ""] ?? DefaultImg.src;
+
   const { onDragStart, shouldNarrow } = useDragSideBar();
   const navigate = useNavigate();
   const config = useAppConfig();
@@ -167,43 +171,28 @@ export function SideBar(props: { className?: string }) {
     () => isIOS() && isMobileScreen,
     [isMobileScreen],
   );
+
   useHotKey();
 
   const { theme } = config;
-  function nextTheme() {
-    const themes = [Theme.Auto, Theme.Light, Theme.Dark];
-    const themeIndex = themes.indexOf(theme);
-    const nextIndex = (themeIndex + 1) % themes.length;
-    const nextTheme = themes[nextIndex];
-    config.update((config) => (config.theme = nextTheme));
-  }
-
-  // Sample user myAgent selection menu. For the future, Each user will have their own unique lists of agents to choose from.
-  const agentOptions = [
-    { id: "raccoon", label: "Raccoon" },
-    { id: "fox", label: "Fox" },
-    { id: "bunny", label: "Bunny" },
-    { id: "cat", label: "Cat" },
-    { id: "dog", label: "Dog" },
+  const themeOptions = [
+    { id: Theme.Light, label: "Light", icon: <LightIcon /> },
+    { id: Theme.Midnight, label: "Midnight", icon: <DarkIcon /> },
+    { id: Theme.Forest, label: "Forest", icon: <PawIcon /> },
+    { id: Theme.Cyberpunk, label: "Cyberpunk", icon: <InternetIcon /> },
+    { id: Theme.Gameboy, label: "GameBoy", icon: <DragIcon /> },
+    { id: Theme.Vampire, label: "Vampire", icon: <DarkIcon /> },
   ];
 
   return (
     <div
-      className={`${styles.sidebar} ${props.className} ${
-        shouldNarrow && styles["narrow-sidebar"]
-      }`}
-      style={{
-        // #3016 disable transition on ios mobile screen
-        transition: isMobileScreen && isIOSMobile ? "none" : undefined,
-      }}
+      className={`${styles.sidebar} ${props.className} ${shouldNarrow && styles["narrow-sidebar"]}`}
+      style={{ transition: isMobileScreen && isIOSMobile ? "none" : undefined }}
     >
       <div className={styles["sidebar-header"]}>
         <div className={styles["sidebar-title-container"]}>
           <div className={styles["sidebar-title"]}>{Locale.Title}</div>
           <div className={styles["sidebar-sub-title"]}>{Locale.Subtitle}</div>
-        </div>
-        <div className={styles["sidebar-logo"] + " no-dark mlc-icon"}>
-          {/* <MlcIcon /> */}
         </div>
       </div>
 
@@ -213,7 +202,9 @@ export function SideBar(props: { className?: string }) {
           text={shouldNarrow ? undefined : Locale.Template.Name}
           className={styles["sidebar-bar-button"]}
           onClick={() => {
-            navigate(Path.MyAgent, { state: { fromHome: true } });
+            requireAuth(() => {
+              navigate(Path.MyAgent, { state: { fromHome: true } });
+            });
           }}
           shadow
         />
@@ -221,31 +212,24 @@ export function SideBar(props: { className?: string }) {
           icon={<SettingsIcon />}
           text={shouldNarrow ? undefined : Locale.Settings.Title}
           className={styles["sidebar-bar-button"]}
-          onClick={() => {
-            navigate(Path.Settings);
-          }}
+          onClick={() => navigate(Path.Settings)}
           shadow
         />
       </div>
 
       <div
         className={styles["sidebar-body"]}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            navigate(Path.Home);
-          }
-        }}
+        onClick={(e) => e.target === e.currentTarget && navigate(Path.Home)}
       >
         <ChatList narrow={shouldNarrow} />
       </div>
 
-      {/* For redux testing */}
       {!shouldNarrow && (
         <div className={styles["redux-panel"]}>
           <button
             className={styles["redux-panel-header"]}
             type="button"
-            onClick={() => setShowReduxState((prev) => !prev)}
+            onClick={() => setShowReduxState((v) => !v)}
           >
             {showReduxState ? "Hide" : "Show"} Redux State
           </button>
@@ -256,7 +240,6 @@ export function SideBar(props: { className?: string }) {
           )}
         </div>
       )}
-      {/*End  For redux testing */}
 
       <div className={styles["sidebar-tail"]}>
         <div className={styles["sidebar-actions"]}>
@@ -270,53 +253,37 @@ export function SideBar(props: { className?: string }) {
               <IconButton icon={<GithubIcon />} shadow />
             </a>
           </div>
+
           <div className={styles["sidebar-action"]}>
-            <IconButton
-              icon={
-                <>
-                  {theme === Theme.Auto ? (
-                    <AutoIcon />
-                  ) : theme === Theme.Light ? (
-                    <LightIcon />
-                  ) : theme === Theme.Dark ? (
-                    <DarkIcon />
-                  ) : null}
-                </>
-              }
-              onClick={nextTheme}
-              shadow
-            />
-          </div>
-          <div className={styles["sidebar-action"]}>
-            <div className={styles["agent-selector"]}>
+            <div className={styles["theme-selector"]}>
               <IconButton
-                icon={<PawIcon />}
-                onClick={() => setShowAgentMenu((v) => !v)}
+                icon={
+                  <>
+                    {theme === Theme.Light && <LightIcon />}
+                    {theme === Theme.Midnight && <DarkIcon />}
+                    {theme === Theme.Forest && <PawIcon />}
+                    {theme === Theme.Cyberpunk && <InternetIcon />}
+                    {theme === Theme.Gameboy && <DragIcon />}
+                    {theme === Theme.Vampire && <DarkIcon />}
+                  </>
+                }
+                onClick={() => setShowThemeMenu((v) => !v)}
                 shadow
               />
-              {showAgentMenu && (
-                <div className={styles["agent-menu"]}>
-                  {agentOptions.map((opt) => (
+              {showThemeMenu && (
+                <div className={styles["theme-menu"]}>
+                  {themeOptions.map((opt) => (
                     <button
                       key={opt.id}
-                      type="button"
-                      className={
-                        styles["agent-menu-item"] +
-                        (opt.id === currentUserAgentId
-                          ? " " + styles["agent-menu-item-active"]
-                          : "")
-                      }
+                      className={`${styles["theme-menu-item"]} ${opt.id === theme ? styles["theme-menu-item-active"] : ""}`}
                       onClick={() => {
-                        dispatch(setCurrentUserAgentId(opt.id));
-                        setShowAgentMenu(false);
-                        showToast?.(`Switched agent to ${opt.label}`);
+                        config.update((c) => (c.theme = opt.id));
+                        setShowThemeMenu(false);
                       }}
                     >
-                      <img
-                        src={getAgentAvatar(opt.id)}
-                        alt={opt.label}
-                        className={styles["agent-menu-avatar"]}
-                      />
+                      <div className={styles["theme-menu-icon"]}>
+                        {opt.icon}
+                      </div>
                       {opt.label}
                     </button>
                   ))}
@@ -324,20 +291,47 @@ export function SideBar(props: { className?: string }) {
               )}
             </div>
           </div>
-        </div>
-        {/* <div>
-          <IconButton
-            icon={<AddIcon />}
-            text={shouldNarrow ? undefined : Locale.Home.NewChat}
-            onClick={() => {
-              if (rooms[0]) {
-                dispatch(setCurrentRoomId(rooms[0].id));
+
+          <div className={styles["sidebar-action"]}>
+            <IconButton
+              icon={<GoogleIcon />}
+              onClick={() =>
+                dispatch(auth.isLoggedIn ? openLogoutModal() : openLoginModal())
               }
-              navigate(Path.Chat);
-            }}
-            shadow
-          />
-        </div> */}
+              shadow
+              title={auth.isLoggedIn ? "Logout" : "Login"}
+            />
+          </div>
+
+          <div className={styles["sidebar-action"]}>
+            <IconButton
+              icon={
+                activeUserAgent ? (
+                  <img
+                    src={activeAgentImage}
+                    alt={activeUserAgent.name}
+                    className={styles["agent-icon-image"]}
+                  />
+                ) : (
+                  <PawIcon />
+                )
+              }
+              onClick={() => {
+                if (!auth.isLoggedIn) {
+                  dispatch(openLoginModal());
+                } else if (!activeUserAgent) {
+                  dispatch(openAgentSelectionModal());
+                }
+              }}
+              shadow
+              title={
+                !auth.isLoggedIn
+                  ? "Login to choose agent"
+                  : activeUserAgent?.name || "Choose Agent"
+              }
+            />
+          </div>
+        </div>
       </div>
 
       <div

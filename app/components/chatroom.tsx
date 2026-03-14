@@ -33,6 +33,8 @@ import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
 
+import { ROOM_PRESENTATION } from "../components/chat-list";
+
 // Styles
 import { getAgentAvatar } from "../utils/agent-avatar";
 
@@ -1720,7 +1722,13 @@ function RoomChat() {
           <div
             className={`window-header-main-title ${styles["chat-body-main-title"]}`}
           >
-            {!room.topic ? DEFAULT_TOPIC : room.topic}
+            {(() => {
+              // 1. Check if the mapping exists for this topic
+              const meta = ROOM_PRESENTATION[room.topic];
+
+              // 2. Return the pretty title, or fallback to the topic name, or finally the default
+              return meta?.title ?? (room.topic || DEFAULT_TOPIC);
+            })()}
           </div>
           <div className="window-header-sub-title">
             {Locale.Chat.SubTitle(room.messages.length)}
@@ -1864,7 +1872,9 @@ function RoomChat() {
                 </div>
               )}
               {message.role === "assistant" && (
-                <div className={styles["chat-message-role-name"]}>
+                <div
+                  className={`${styles["chat-message-role-name"]} ${styles["no-hide"]}`}
+                >
                   {models.find((m) => m.name === message.model)
                     ? models.find((m) => m.name === message.model)!.display_name
                     : message.model}
@@ -1941,31 +1951,31 @@ function RoomChat() {
 
       {/* room message input for testing message update in agents room, should be delete later*/}
       {/* <div className={styles["chat-input-panel"]}>
-        <div className={styles["chat-input-panel-inner"]}>
-          <textarea
-            className={styles["chat-input"]}
-            placeholder="Type a room message..."
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={2}
-            style={{ fontSize }}
-            onKeyDown={(e) => {
-              // Enter = send, Shift+Enter = newline
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendToRoom();
-              }
-            }}
-          />
-          <IconButton
-            icon={<SendWhiteIcon />}
-            text="Send"
-            className={styles["chat-input-send"]}
-            type="primary"
-            onClick={sendToRoom}
-          />
-        </div>
-      </div> */}
+          <div className={styles["chat-input-panel-inner"]}>
+            <textarea
+              className={styles["chat-input"]}
+              placeholder="Type a room message..."
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={2}
+              style={{ fontSize }}
+              onKeyDown={(e) => {
+                // Enter = send, Shift+Enter = newline
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendToRoom();
+                }
+              }}
+            />
+            <IconButton
+              icon={<SendWhiteIcon />}
+              text="Send"
+              className={styles["chat-input-send"]}
+              type="primary"
+              onClick={sendToRoom}
+            />
+          </div>
+        </div> */}
 
       {showExport && (
         <ExportMessageModal onClose={() => setShowExport(false)} />
