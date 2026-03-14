@@ -531,7 +531,7 @@
 
 .theme-menu {
   position: absolute;
-  bottom: 50px; /* Float above the button */
+  bottom: 50px;
   left: 0;
   background-color: var(--white);
   border: var(--border-in-light);
@@ -575,5 +575,59 @@
       width: 16px;
       height: 16px;
     }
+  }
+}
+
+.redux-panel {
+  margin: 10px;
+  margin-top: 20px;
+  border: var(--border-in-light);
+  background-color: var(--white); // Use theme's bubble color
+  box-shadow: 4px 4px 0px var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.redux-panel-header {
+  width: 100%;
+  padding: 8px;
+  background-color: var(--primary); // The theme's accent color
+  color: var(--white);            // Contrast text
+  border: none;
+  border-bottom: var(--border-in-light);
+  font-family: var(--pixel-font);
+  font-size: 16px;
+  cursor: pointer;
+  text-align: center;
+
+  &:hover {
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: translateY(2px);
+  }
+}
+
+.redux-panel-body {
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.4;
+  background-color: var(--white);
+  color: var(--black);
+  margin: 0;
+  
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: monospace; 
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--bar-color);
   }
 }

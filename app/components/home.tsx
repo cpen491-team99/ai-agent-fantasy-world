@@ -71,7 +71,6 @@ export function useSwitchTheme() {
   const config = useAppConfig();
 
   useEffect(() => {
-    // 1. Remove all possible theme classes to avoid "class soup"
     const allThemes = [
       "light",
       "midnight",
@@ -83,13 +82,10 @@ export function useSwitchTheme() {
     ];
     document.body.classList.remove(...allThemes);
 
-    // 2. Apply the current theme class
     document.body.classList.add(config.theme);
 
-    // 3. Update the data-theme attribute for SCSS
     document.documentElement.setAttribute("data-theme", config.theme);
 
-    // 4. Update the mobile status bar colors
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       const colors: Record<string, string> = {

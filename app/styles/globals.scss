@@ -39,15 +39,15 @@
 }
 
 @mixin cyberpunk {
-  --white: #2b0b3d; 
+  --white: #0d0221;
   --black: #00ffcc;
-  --gray: #1a0624; 
+  --gray: #1a0624;
   --primary: #ff00ff;
-  --second: #3d0f57; 
-  --bar-color: #0d0211;
-  --border-in-light: 4px solid #ff00ff;
-  --shadow: 4px 4px 0px rgba(255, 0, 255, 0.3);
-  --theme-color: #1a0624;
+  --second: #3d0f57;
+  --bar-color: #00ffcc;
+  --border-in-light: 4px solid #00ffcc;
+  --shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+  --theme-color: #0d0221;
 }
 
 @mixin gameboy {
@@ -295,7 +295,7 @@ div.math { overflow-x: auto; }
 
 pre {
   position: relative;
-  background-color: #2a1a0a !important; 
+  background-color: var(--white) !important;
   border: 4px solid var(--primary);
   color: #fcebc4;
   &:hover .copy-code-button {
