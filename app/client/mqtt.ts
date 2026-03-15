@@ -36,13 +36,19 @@ export type SenderHistoryResponse = {
   error?: string;
 };
 
-// Fixed: Added agentId optional field
 export type MemoryFindResponse = {
   requestId: string;
   textQuery?: string;
   results?: any[];
   error?: string;
   agentId?: string;
+};
+
+export type LockResponse = {
+  roomId: string;
+  agentId: string;
+  status: "granted" | "denied";
+  ts: number;
 };
 
 type BufferedMessage = {
@@ -77,6 +83,7 @@ type Handlers = {
   onRoomHistory?: (data: RoomHistoryResponse) => void;
   onSenderHistory?: (data: SenderHistoryResponse) => void;
   onMemoryFind?: (data: MemoryFindResponse) => void;
+  onLockResponse?: (data: LockResponse) => void;
 
   onRoomsState?: (data: any) => void;
   onRoomMembers?: (roomId: string, data: any) => void;
@@ -242,7 +249,6 @@ export class FrontendMqttClient {
       }
 
       // agents/<agentId>/memory/find/response/<requestId>
-      const { agentId } = this.opts ?? { agentId: "" };
       const mMem = topic.match(
         /^agents\/([^/]+)\/memory\/find\/response\/([^/]+)$/,
       );
@@ -250,7 +256,31 @@ export class FrontendMqttClient {
         const topicAgentId = mMem[1];
         try {
           const data = JSON.parse(text) as MemoryFindResponse;
+          // Make sure json data contains agentID
+          (data as any).agentId = topicAgentId;
+
+          console.log("[MQTT] memory find response topic matched", {
+            optsAgentId: agentId, // the one used to build the regex
+            topic,
+            requestIdFromTopic: mMem[1],
+            requestIdInPayload: data?.requestId,
+            resultCount: Array.isArray(data?.results) ? data.results.length : 0,
+          });
+
           this.handlers.onMemoryFind?.(data);
+          this.emit("onMemoryFind", data); // ✅ critical for addHandlers()
+        } catch {}
+        return;
+      }
+
+      // rooms/<roomId>/lock/response
+      const mLock = topic.match(/^rooms\/([^/]+)\/lock\/response$/);
+      if (mLock) {
+        try {
+          const data = JSON.parse(text) as LockResponse;
+          data.roomId = mLock[1];
+          this.handlers.onLockResponse?.(data);
+          this.emit("onLockResponse", data);
         } catch {}
         return;
       }
@@ -303,7 +333,6 @@ export class FrontendMqttClient {
   subscribeBase() {
     if (!this.client) return;
 
-    const { agentId } = this.opts!;
     this.client.subscribe(
       [
         "rooms/state",
@@ -311,6 +340,7 @@ export class FrontendMqttClient {
         "rooms/+/chat/out",
         "rooms/+/history/response/+",
         "senders/history/response/+",
+        "rooms/+/lock/response",
         "agents/+/memory/find/response/+",
       ],
       (err) => {
@@ -515,6 +545,40 @@ export class FrontendMqttClient {
     );
 
     return requestId;
+  }
+
+  // Method to request memories for specific agent
+  requestAgentMemoryFind(textQuery: string, targetAgentID: string) {
+    if (!this.opts) throw new Error("MQTT client not connected yet");
+    const requestId = `${targetAgentID}-${Date.now()}`;
+
+    this.safePublish(
+      `agents/${targetAgentID}/memory/find/request`,
+      JSON.stringify({ requestId, textQuery }),
+      { qos: 0, retain: false },
+    );
+
+    return requestId;
+  }
+
+  acquireLock(roomId: string) {
+    if (!this.opts) throw new Error("MQTT client not connected yet");
+    const { agentId } = this.opts;
+    this.safePublish(
+      `rooms/${roomId}/lock/acquire`,
+      JSON.stringify({ agentId, ts: Date.now() }),
+      { qos: 0, retain: false },
+    );
+  }
+
+  releaseLock(roomId: string) {
+    if (!this.opts) throw new Error("MQTT client not connected yet");
+    const { agentId } = this.opts;
+    this.safePublish(
+      `rooms/${roomId}/lock/release`,
+      JSON.stringify({ agentId, ts: Date.now() }),
+      { qos: 0, retain: false },
+    );
   }
 }
 

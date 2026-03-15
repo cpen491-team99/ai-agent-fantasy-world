@@ -100,7 +100,10 @@ import { useAppDispatch } from "../redux/hooks";
 import { addMessage, setRoomMessages } from "../redux/chatroomsSlice";
 import { getMqttClient } from "../client/mqtt";
 import { createMessage, type ChatMessage } from "../store/chat";
-import { useChatroomStore, shouldAgentRespond } from "../store/chatroom-store";
+import {
+  useChatroomStore,
+  attemptAgentResponse,
+} from "../store/chatroom-store";
 
 export function ScrollDownToast(prop: { show: boolean; onclick: () => void }) {
   return (
@@ -1593,33 +1596,46 @@ function RoomChat() {
         dispatch(setRoomMessages({ roomId: data.roomId, messages: msgs }));
         console.log("[MQTT] room history loaded", data.roomId, msgs.length);
       },
-      // onChatOut: (data) => {
-      //   // Add incoming message to Redux
-      //   const incomingMessage = toChatMessage({
-      //     id: `${data.roomId}-${data.ts ?? Date.now()}`,
-      //     text: data.msg,
-      //     senderId: data.fromAgentId,
-      //     senderIsUser: false,
-      //     sentAt: data.ts ? new Date(data.ts).toISOString() : new Date().toISOString(),
-      //   });
+      onChatOut: (data) => {
+        // Construct incomingMessage for inference context
+        const incomingMessage = toChatMessage({
+          id: `${data.roomId}-${data.ts ?? Date.now()}`,
+          text: data.msg,
+          senderId: data.fromAgentId,
+          senderIsUser: false,
+          sentAt: data.ts
+            ? new Date(data.ts).toISOString()
+            : new Date().toISOString(),
+        });
 
-      //   // Only add if not from self (to avoid duplicates)
-      //   if (data.fromAgentId !== currentUserAgentId) {
-      //     dispatch(addMessage({ roomId: data.roomId, message: incomingMessage }));
+        // Inference logic: only react if message is not from self
+        if (data.fromAgentId !== currentUserAgentId) {
+          // Note: dispatch(addMessage) is omitted here because providers.tsx handles
+          // adding messages globally to Redux.
 
-      //     // Check if agent should respond
-      //     if (shouldAgentRespond()) {
-      //       // Get updated messages including the new one
-      //       const updatedMessages = [...messagesRef.current, incomingMessage];
-      //       useChatroomStore.getState().onAgentRespond(
-      //         llm,
-      //         data.roomId,
-      //         updatedMessages,
-      //         incomingMessage,
-      //       );
-      //     }
-      //   }
-      // },
+          attemptAgentResponse(incomingMessage, data.roomId)
+            .then((granted) => {
+              if (granted) {
+                // Get updated messages including the new one
+                const updatedMessages = [
+                  ...messagesRef.current,
+                  incomingMessage,
+                ];
+                useChatroomStore
+                  .getState()
+                  .onAgentRespond(
+                    llm,
+                    data.roomId,
+                    updatedMessages,
+                    incomingMessage,
+                  );
+              }
+            })
+            .catch((err) => {
+              console.error("[Inference Node] Error attempting response:", err);
+            });
+        }
+      },
     });
 
     return () => {
